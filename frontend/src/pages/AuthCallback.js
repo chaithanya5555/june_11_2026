@@ -13,28 +13,23 @@ export default function AuthCallback() {
   useEffect(() => {
     if (hasProcessed.current) return;
     hasProcessed.current = true;
-
     const hash = window.location.hash;
     const match = hash.match(/session_id=([^&]+)/);
     if (!match) { navigate('/'); return; }
-
-    const sessionId = match[1];
     (async () => {
       try {
-        const res = await axios.post(`${API}/auth/session`, { session_id: sessionId }, { withCredentials: true });
+        const res = await axios.post(`${API}/auth/session`, { session_id: match[1] }, { withCredentials: true });
         setUser(res.data);
         navigate('/dashboard', { state: { user: res.data }, replace: true });
-      } catch {
-        navigate('/');
-      }
+      } catch { navigate('/'); }
     })();
   }, [navigate, setUser]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-black">
       <div className="text-center">
-        <div className="w-8 h-8 border-2 border-zinc-300 border-t-zinc-950 rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-sm text-zinc-500">Signing you in...</p>
+        <div className="w-8 h-8 border-2 border-white/20 border-t-[#007AFF] rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-sm text-white/40">Signing you in...</p>
       </div>
     </div>
   );

@@ -15,42 +15,24 @@ export default function Wishlist() {
 
   useEffect(() => {
     if (!user) { login(); return; }
-    const fetch = async () => {
-      try {
-        const res = await axios.get(`${API}/wishlist`, { withCredentials: true });
-        setProducts(res.data);
-      } catch { /* ignore */ }
+    (async () => {
+      try { const r = await axios.get(`${API}/wishlist`, { withCredentials: true }); setProducts(r.data); } catch {}
       setLoading(false);
-    };
-    fetch();
+    })();
   }, [user, login]);
 
   if (!user) return null;
 
   return (
-    <div data-testid="wishlist-page" className="min-h-screen bg-white">
+    <div data-testid="wishlist-page" className="min-h-screen bg-black">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl tracking-tight font-medium text-zinc-950 mb-8" style={{ fontFamily: 'var(--font-heading)' }}>My Wishlist</h1>
+        <h1 className="text-2xl tracking-tight font-medium text-white mb-8" style={{ fontFamily: 'var(--font-heading)' }}>My Wishlist</h1>
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="animate-pulse">
-                <div className="bg-zinc-200 rounded-lg aspect-square mb-3" />
-                <div className="h-4 bg-zinc-200 rounded w-2/3 mb-2" />
-                <div className="h-3 bg-zinc-200 rounded w-1/4" />
-              </div>
-            ))}
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{[1,2,3].map(i => <div key={i} className="bg-white/5 rounded-xl aspect-[3/4] animate-pulse" />)}</div>
         ) : products.length === 0 ? (
-          <div className="text-center py-20">
-            <Heart size={48} className="text-zinc-300 mx-auto mb-4" />
-            <p className="text-sm text-zinc-500 mb-4">Your wishlist is empty</p>
-            <Link to="/shop"><Button data-testid="wishlist-shop-btn" variant="outline" className="rounded-md">Explore Products</Button></Link>
-          </div>
+          <div className="text-center py-20"><Heart size={48} className="text-white/20 mx-auto mb-4" /><p className="text-sm text-white/40 mb-4">Wishlist is empty</p><Link to="/shop"><Button data-testid="wishlist-shop-btn" variant="outline" className="border-white/20 text-white hover:bg-white/5 rounded-lg">Explore</Button></Link></div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {products.map(p => <ProductCard key={p.product_id} product={p} />)}
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">{products.map(p => <ProductCard key={p.product_id} product={p} />)}</div>
         )}
       </div>
     </div>

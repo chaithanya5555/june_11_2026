@@ -7,10 +7,12 @@ class SnapAlignAPITester:
     def __init__(self, base_url="https://snapalign-store.preview.emergentagent.com"):
         self.base_url = base_url
         self.session_token = None
+        self.admin_token = None
         self.user_id = None
         self.tests_run = 0
         self.tests_passed = 0
         self.test_results = []
+        self.failed_tests = []
 
     def log_test(self, name, success, details=""):
         """Log test result"""
@@ -27,7 +29,7 @@ class SnapAlignAPITester:
             "details": details
         })
 
-    def run_test(self, name, method, endpoint, expected_status, data=None, headers=None):
+    def run_test(self, name, method, endpoint, expected_status, data=None, headers=None, use_admin=False):
         """Run a single API test"""
         url = f"{self.base_url}/api/{endpoint}"
         test_headers = {'Content-Type': 'application/json'}
@@ -35,8 +37,14 @@ class SnapAlignAPITester:
         if headers:
             test_headers.update(headers)
         
-        if self.session_token and 'Authorization' not in test_headers:
+        # Use appropriate token based on test type
+        if use_admin and self.admin_token:
+            test_headers['Authorization'] = f'Bearer {self.admin_token}'
+        elif not use_admin and self.session_token and 'Authorization' not in test_headers:
             test_headers['Authorization'] = f'Bearer {self.session_token}'
+
+        print(f"\n🔍 Testing {name}...")
+        print(f"   URL: {url}")
 
         try:
             if method == 'GET':
@@ -241,12 +249,170 @@ class SnapAlignAPITester:
         review_data = {"rating": 5, "comment": "Great product! Highly recommended."}
         self.run_test("Add product review", "POST", "products/prod_case001/reviews", 200, review_data)
 
+    def test_admin_login(self):
+        """Test admin login with correct password"""
+        print("\n🔐 Testing Admin Authentication...")
+        success, response = self.run_test(
+            "Admin Login",
+            "POST",
+            "admin/login",
+            200,
+            data={"password": "snapalign2026"}
+        )
+        if success and 'token' in response:
+            self.admin_token = response['token']
+            print(f"   Admin token obtained: {self.admin_token[:20]}...")
+            return True
+        return False
+
+    def test_admin_verify(self):
+        """Test admin token verification"""
+        return self.run_test(
+            "Admin Verify",
+            "GET",
+            "admin/verify",
+            200,
+            use_admin=True
+        )[0]
+
+    def test_snapalign_products(self):
+        """Test SnapAlign specific product requirements"""
+        print("\n📦 Testing SnapAlign Product Requirements...")
+        
+        # Test basic products endpoint
+        success, products = self.run_test(
+            "Get All Products",
+            "GET",
+            "products",
+            200
+        )
+        
+        if success:
+            print(f"   Found {len(products)} products")
+            
+            # Check if we have 15 products as mentioned
+            if len(products) == 15:
+                self.log_test("Product Count (15)", True, f"Found {len(products)} products")
+            else:
+                self.log_test("Product Count (15)", False, f"Expected 15, found {len(products)}")
+            
+            # Check categories
+            categories = set(p.get('category') for p in products)
+            expected_cats = {'Tempered Glass', 'Cases', 'Holders', 'Cables & Chargers'}
+            if expected_cats.issubset(categories):
+                self.log_test("Required Categories", True, f"All categories found: {categories}")
+            else:
+                missing = expected_cats - categories
+                self.log_test("Required Categories", False, f"Missing: {missing}")
+            
+            # Check INR pricing
+            inr_products = [p for p in products if isinstance(p.get('price'), (int, float)) and p['price'] > 0]
+            if len(inr_products) == len(products):
+                self.log_test("INR Pricing", True, "All products have valid prices")
+            else:
+                self.log_test("INR Pricing", False, f"Some products missing prices")
+            
+            # Check compare_at pricing for discounts
+            discount_products = [p for p in products if p.get('compare_at_price')]
+            if len(discount_products) > 0:
+                self.log_test("Compare-at Pricing", True, f"{len(discount_products)} products have compare-at prices")
+            else:
+                self.log_test("Compare-at Pricing", False, "No products have compare-at prices")
+        
+        return success
+
+    def test_category_filtering(self):
+        """Test category filtering"""
+        print("\n🏷️ Testing Category Filtering...")
+        
+        categories = ['Cases', 'Tempered Glass', 'Holders', 'Cables & Chargers']
+        for category in categories:
+            success, products = self.run_test(
+                f"Filter by {category}",
+                "GET",
+                f"products?category={category}",
+                200
+            )
+            if success:
+                # Verify all products are from the correct category
+                correct_category = all(p.get('category') == category for p in products)
+                if correct_category:
+                    self.log_test(f"Category Filter {category}", True, f"Found {len(products)} products")
+                else:
+                    self.log_test(f"Category Filter {category}", False, "Some products from wrong category")
+
+    def test_admin_dashboard_apis(self):
+        """Test admin dashboard specific APIs"""
+        print("\n📊 Testing Admin Dashboard APIs...")
+        
+        if not self.admin_token:
+            print("⚠️ No admin token, skipping admin tests")
+            return
+        
+        # Test admin stats
+        success, stats = self.run_test(
+            "Admin Stats",
+            "GET",
+            "admin/stats",
+            200,
+            use_admin=True
+        )
+        
+        if success:
+            required_fields = ['total_revenue', 'net_profit', 'total_orders', 'total_users']
+            for field in required_fields:
+                if field in stats:
+                    self.log_test(f"Stats Field: {field}", True, f"Value: {stats[field]}")
+                else:
+                    self.log_test(f"Stats Field: {field}", False, "Missing field")
+        
+        # Test admin orders
+        self.run_test("Admin Orders", "GET", "admin/orders", 200, use_admin=True)
+        
+        # Test admin products
+        self.run_test("Admin Products", "GET", "admin/products", 200, use_admin=True)
+        
+        # Test warehouse/dead stock
+        self.run_test("Admin Dead Stock", "GET", "admin/dead-stock", 200, use_admin=True)
+        
+        # Test CSV export
+        self.run_test("Admin Export CSV", "GET", "admin/export-orders", 200, use_admin=True)
+
+    def test_order_tracking(self):
+        """Test public order tracking"""
+        print("\n📦 Testing Order Tracking...")
+        
+        # Test with non-existent order ID
+        success, _ = self.run_test(
+            "Track Non-existent Order",
+            "GET",
+            "track/ORD-NONEXIST",
+            404
+        )
+        
+        return success
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting SnapAlign API Tests...")
         print(f"Backend URL: {self.base_url}")
         
-        # Test public endpoints first
+        # Test seed first to ensure products exist
+        self.run_test("Seed Products", "POST", "seed", 200)
+        
+        # Test SnapAlign specific requirements
+        self.test_snapalign_products()
+        self.test_category_filtering()
+        self.test_order_tracking()
+        
+        # Test admin functionality
+        if self.test_admin_login():
+            self.test_admin_verify()
+            self.test_admin_dashboard_apis()
+        else:
+            print("⚠️ Admin login failed, skipping admin tests")
+        
+        # Test public endpoints
         self.test_public_endpoints()
         
         # Create test session for authenticated tests
@@ -255,7 +421,6 @@ class SnapAlignAPITester:
             self.test_cart_operations()
             self.test_wishlist_operations()
             self.test_review_system()
-            self.test_admin_endpoints()
         else:
             print("⚠️ Skipping authenticated tests - failed to create test session")
         
@@ -264,6 +429,14 @@ class SnapAlignAPITester:
         print(f"Tests run: {self.tests_run}")
         print(f"Tests passed: {self.tests_passed}")
         print(f"Success rate: {(self.tests_passed/self.tests_run*100):.1f}%")
+        
+        if self.tests_passed < self.tests_run:
+            print(f"\n❌ Failed Tests:")
+            failed_count = 0
+            for result in self.test_results:
+                if not result['success']:
+                    failed_count += 1
+                    print(f"   {failed_count}. {result['test']}: {result['details']}")
         
         return self.tests_passed == self.tests_run
 
