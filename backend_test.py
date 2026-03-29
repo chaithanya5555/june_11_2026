@@ -3,7 +3,7 @@ import sys
 import json
 from datetime import datetime
 
-class SnapAlignAPITester:
+class SnapAlignPaymentTester:
     def __init__(self, base_url="https://snapalign-store.preview.emergentagent.com"):
         self.base_url = base_url
         self.session_token = None
@@ -13,6 +13,8 @@ class SnapAlignAPITester:
         self.tests_passed = 0
         self.test_results = []
         self.failed_tests = []
+        self.test_order_id = None
+        self.test_razorpay_order_id = None
 
     def log_test(self, name, success, details=""):
         """Log test result"""
@@ -440,8 +442,293 @@ class SnapAlignAPITester:
         
         return self.tests_passed == self.tests_run
 
+    def test_payment_config(self):
+        """Test payment configuration endpoint"""
+        print("\n🔍 Testing Payment Configuration...")
+        success, response = self.run_test(
+            "GET /api/payment/config returns demo_mode true and payment methods",
+            "GET",
+            "payment/config",
+            200
+        )
+        
+        if success:
+            # Verify demo mode and payment methods
+            demo_mode = response.get('demo_mode', False)
+            methods = response.get('methods', {})
+            key_id = response.get('key_id', '')
+            
+            print(f"   Demo Mode: {demo_mode}")
+            print(f"   Key ID: {key_id}")
+            print(f"   Payment Methods: {methods}")
+            
+            # Check if demo mode is true and key starts with demo
+            if demo_mode and key_id.startswith('rzp_test_DEMO'):
+                self.log_test("Demo mode validation", True, "Demo mode correctly configured")
+            else:
+                self.log_test("Demo mode validation", False, f"Demo mode: {demo_mode}, Key: {key_id}")
+        
+        return success
+
+    def test_payment_create_order(self):
+        """Test creating payment order (requires auth)"""
+        print("\n🔍 Testing Payment Order Creation...")
+        
+        if not self.session_token:
+            print("❌ Customer token required")
+            return False
+
+        # First ensure we have items in cart
+        self.add_test_item_to_cart()
+
+        success, response = self.run_test(
+            "POST /api/payment/create-order creates order in demo mode (requires auth)",
+            "POST",
+            "payment/create-order",
+            200,
+            data={
+                "origin_url": "https://snapalign-store.preview.emergentagent.com",
+                "payment_method": "upi_phonepe"
+            }
+        )
+        
+        if success:
+            order_id = response.get('order_id')
+            razorpay_order_id = response.get('razorpay_order_id')
+            demo_mode = response.get('demo_mode')
+            
+            print(f"   Order ID: {order_id}")
+            print(f"   Razorpay Order ID: {razorpay_order_id}")
+            print(f"   Demo Mode: {demo_mode}")
+            
+            # Store for next test
+            self.test_order_id = order_id
+            self.test_razorpay_order_id = razorpay_order_id
+            
+            return True
+        
+        return False
+
+    def test_demo_payment_complete(self):
+        """Test demo payment completion (requires auth)"""
+        print("\n🔍 Testing Demo Payment Completion...")
+        
+        if not hasattr(self, 'test_order_id') or not self.session_token:
+            print("❌ Order ID or customer token missing")
+            return False
+
+        success, response = self.run_test(
+            "POST /api/payment/demo-complete simulates successful payment (requires auth)",
+            "POST",
+            "payment/demo-complete",
+            200,
+            data={
+                "order_id": self.test_order_id,
+                "razorpay_order_id": self.test_razorpay_order_id,
+                "payment_method": "upi_phonepe"
+            }
+        )
+        
+        if success:
+            print(f"   Demo payment completed for order: {self.test_order_id}")
+            return True
+        
+        return False
+
+    def test_post_payment_automation(self):
+        """Test post-payment automation effects"""
+        print("\n🔍 Testing Post-Payment Automation...")
+        
+        if not hasattr(self, 'test_order_id'):
+            print("❌ No test order available")
+            return False
+
+        # Check order status
+        success, order = self.run_test(
+            "After demo payment: order status changes to confirmed",
+            "GET",
+            f"orders/{self.test_order_id}",
+            200
+        )
+        
+        if success:
+            status = order.get('status')
+            print(f"   Order status: {status}")
+            if status == 'confirmed':
+                self.log_test("Order status updated to confirmed", True)
+            else:
+                self.log_test("Order status updated to confirmed", False, f"Status is {status}")
+
+        return True
+
+    def test_admin_stats_with_revenue(self):
+        """Test admin stats including projected revenue"""
+        print("\n🔍 Testing Admin Stats with Revenue...")
+        
+        if not self.admin_token:
+            print("❌ Admin token required")
+            return False
+
+        success, response = self.run_test(
+            "GET /api/admin/stats now includes projected_revenue and total_fees",
+            "GET",
+            "admin/stats",
+            200,
+            use_admin=True
+        )
+        
+        if success:
+            projected_revenue = response.get('projected_revenue')
+            total_fees = response.get('total_fees')
+            
+            print(f"   Projected Revenue: ₹{projected_revenue}")
+            print(f"   Total Fees: ₹{total_fees}")
+            
+            if projected_revenue is not None and total_fees is not None:
+                self.log_test("Projected revenue and fees calculation", True)
+            else:
+                self.log_test("Projected revenue and fees calculation", False, "Missing fields")
+        
+        return success
+
+    def test_admin_settings_endpoints(self):
+        """Test admin settings GET and PUT endpoints"""
+        print("\n🔍 Testing Admin Settings...")
+        
+        if not self.admin_token:
+            print("❌ Admin token required")
+            return False
+
+        # Test GET settings
+        success, response = self.run_test(
+            "GET /api/admin/settings returns key config",
+            "GET",
+            "admin/settings",
+            200,
+            use_admin=True
+        )
+        
+        if success:
+            demo_mode = response.get('demo_mode')
+            key_id = response.get('razorpay_key_id')
+            print(f"   Current demo mode: {demo_mode}")
+            print(f"   Current key ID: {key_id}")
+
+        # Test PUT settings (update with same values to avoid breaking demo mode)
+        success, response = self.run_test(
+            "PUT /api/admin/settings updates Razorpay keys",
+            "PUT",
+            "admin/settings",
+            200,
+            data={
+                "razorpay_key_id": "rzp_test_DEMO_MODE"
+            },
+            use_admin=True
+        )
+        
+        return success
+
+    def add_test_item_to_cart(self):
+        """Helper to add test item to cart"""
+        # Get products first
+        success, products = self.run_test(
+            "Get Products for Cart",
+            "GET",
+            "products",
+            200
+        )
+        
+        if success and products:
+            product = products[0]
+            product_id = product['product_id']
+            
+            # Add to cart
+            self.run_test(
+                "Add to Cart",
+                "POST",
+                "cart",
+                200,
+                data={"product_id": product_id, "quantity": 2}
+            )
+
+    def authenticate_customer(self):
+        """Authenticate as customer using test session"""
+        print("\n🔍 Authenticating Customer...")
+        self.session_token = "test_admin_session_fixed"
+        
+        # Test the session
+        success, response = self.run_test(
+            "Customer Auth Check",
+            "GET",
+            "auth/me",
+            200
+        )
+        
+        if success:
+            print(f"   Customer authenticated: {response.get('email', 'Unknown')}")
+            return True
+        else:
+            print("❌ Customer authentication failed")
+            return False
+
+    def authenticate_admin(self):
+        """Authenticate as admin"""
+        print("\n🔍 Authenticating Admin...")
+        success, response = self.run_test(
+            "Admin Login",
+            "POST",
+            "admin/login",
+            200,
+            data={"password": "snapalign2026"}
+        )
+        
+        if success and 'token' in response:
+            self.admin_token = response['token']
+            print(f"   Admin authenticated with token: {self.admin_token[:20]}...")
+            return True
+        else:
+            print("❌ Admin authentication failed")
+            return False
+
+    def run_payment_tests(self):
+        """Run payment gateway specific tests"""
+        print("🚀 Starting SnapAlign Payment Gateway Tests")
+        print(f"Testing against: {self.base_url}")
+        print("=" * 60)
+
+        # Authenticate first
+        self.authenticate_customer()
+        self.authenticate_admin()
+
+        # Payment gateway tests
+        payment_tests = [
+            self.test_payment_config,
+            self.test_payment_create_order,
+            self.test_demo_payment_complete,
+            self.test_post_payment_automation,
+            self.test_admin_stats_with_revenue,
+            self.test_admin_settings_endpoints
+        ]
+
+        for test in payment_tests:
+            try:
+                test()
+            except Exception as e:
+                print(f"❌ Test {test.__name__} failed with exception: {e}")
+
+        # Print summary
+        print("\n" + "=" * 60)
+        print(f"📊 Payment Test Summary: {self.tests_passed}/{self.tests_run} passed")
+        
+        if self.tests_passed == self.tests_run:
+            print("🎉 All payment tests passed!")
+            return 0
+        else:
+            print("⚠️  Some payment tests failed")
+            return 1
+
 def main():
-    tester = SnapAlignAPITester()
+    tester = SnapAlignPaymentTester()
     success = tester.run_all_tests()
     return 0 if success else 1
 

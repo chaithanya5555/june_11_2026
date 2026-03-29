@@ -22,6 +22,19 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 stripe_api_key = os.environ.get('STRIPE_API_KEY', '')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'snapalign2026')
+RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', 'rzp_test_DEMO_MODE')
+RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', 'DEMO_SECRET_REPLACE_ME')
+PAYMENT_FEE_PERCENT = 2.0  # 2% payment gateway fee
+
+import razorpay
+import hashlib
+import hmac
+
+def get_razorpay_client():
+    return razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+
+def is_demo_mode():
+    return RAZORPAY_KEY_ID.startswith('rzp_test_DEMO')
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -64,6 +77,18 @@ class ReviewCreate(BaseModel):
 
 class CheckoutRequest(BaseModel):
     origin_url: str
+    payment_method: str = "razorpay"  # razorpay, upi_phonepe, upi_gpay, paytm, mobikwik
+
+class RazorpayVerifyRequest(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+    order_id: str
+
+class SettingsUpdateRequest(BaseModel):
+    razorpay_key_id: Optional[str] = None
+    razorpay_key_secret: Optional[str] = None
+    admin_password: Optional[str] = None
 
 class OrderStatusUpdate(BaseModel):
     status: Optional[str] = None
@@ -321,10 +346,56 @@ async def toggle_wishlist(product_id: str, request: Request):
     await db.wishlists.insert_one({"wishlist_id": f"wl_{uuid.uuid4().hex[:12]}", "user_id": user["user_id"], "product_id": product_id, "added_at": datetime.now(timezone.utc).isoformat()})
     return {"action": "added", "message": "Added to wishlist"}
 
-# ── Checkout ──
-@api_router.post("/checkout")
-async def create_checkout(req: CheckoutRequest, request: Request):
-    from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
+# ── Checkout / Razorpay Payment ──
+
+async def _post_payment_success(order_id: str, payment_id: str, method: str):
+    """Automated post-payment: update order, deduct stock, record settlement."""
+    order = await db.orders.find_one({"order_id": order_id}, {"_id": 0})
+    if not order or order.get("status") == "confirmed":
+        return
+    # 1. Update order status to Paid/Confirmed
+    await db.orders.update_one({"order_id": order_id}, {"$set": {
+        "status": "confirmed", "paid_at": datetime.now(timezone.utc).isoformat(),
+        "payment_id": payment_id, "payment_method": method
+    }})
+    # 2. Deduct warehouse stock
+    for item in order.get("items", []):
+        await db.products.update_one(
+            {"product_id": item["product_id"], "stock": {"$gte": item["quantity"]}},
+            {"$inc": {"stock": -item["quantity"]}}
+        )
+    # 3. Calculate settlement (total - 2% fee)
+    total = order.get("total", 0)
+    fee = round(total * PAYMENT_FEE_PERCENT / 100, 2)
+    settlement = round(total - fee, 2)
+    await db.settlements.insert_one({
+        "settlement_id": f"stl_{uuid.uuid4().hex[:12]}",
+        "order_id": order_id, "payment_id": payment_id,
+        "gross_amount": total, "fee_percent": PAYMENT_FEE_PERCENT,
+        "fee_amount": fee, "net_settlement": settlement,
+        "method": method, "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    # 4. Clear cart
+    user_id = order.get("user_id")
+    if user_id:
+        await db.cart_items.delete_many({"user_id": user_id})
+    logger.info(f"Post-payment: Order {order_id} confirmed, stock deducted, settlement ₹{settlement}")
+
+@api_router.get("/payment/config")
+async def payment_config():
+    """Return Razorpay key ID for frontend (public info only)."""
+    return {
+        "key_id": RAZORPAY_KEY_ID,
+        "demo_mode": is_demo_mode(),
+        "currency": "INR",
+        "methods": {
+            "upi": True, "card": True, "netbanking": True,
+            "wallet": True, "emi": False, "paylater": True
+        }
+    }
+
+@api_router.post("/payment/create-order")
+async def create_razorpay_order(req: CheckoutRequest, request: Request):
     user = await get_current_user(request)
     cart_items = await db.cart_items.find({"user_id": user["user_id"]}, {"_id": 0}).to_list(100)
     if not cart_items:
@@ -337,65 +408,109 @@ async def create_checkout(req: CheckoutRequest, request: Request):
             item_total = product["price"] * ci["quantity"]
             total += item_total
             order_items.append({"product_id": product["product_id"], "name": product["name"], "price": product["price"], "quantity": ci["quantity"], "image": product.get("image", "")})
+    shipping = 0 if total >= 500 else 49
+    grand_total = round(total + shipping, 2)
     order_id = f"ORD-{uuid.uuid4().hex[:8].upper()}"
     await db.orders.insert_one({
         "order_id": order_id, "user_id": user["user_id"], "items": order_items,
-        "total": round(total, 2), "status": "pending_payment", "tracking_number": "",
+        "subtotal": round(total, 2), "shipping": shipping, "total": grand_total,
+        "status": "pending_payment", "tracking_number": "", "payment_method": req.payment_method,
         "customer_name": user.get("name", ""), "customer_email": user.get("email", ""),
         "created_at": datetime.now(timezone.utc).isoformat()
     })
-    origin = req.origin_url.rstrip("/")
-    success_url = f"{origin}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}"
-    cancel_url = f"{origin}/shop"
-    webhook_url = f"{str(request.base_url).rstrip('/')}/api/webhook/stripe"
-    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
-    checkout_req = CheckoutSessionRequest(amount=round(total, 2), currency="inr", success_url=success_url, cancel_url=cancel_url, metadata={"order_id": order_id, "user_id": user["user_id"]})
-    session = await stripe_checkout.create_checkout_session(checkout_req)
-    await db.payment_transactions.insert_one({
-        "transaction_id": f"txn_{uuid.uuid4().hex[:12]}", "session_id": session.session_id,
-        "order_id": order_id, "user_id": user["user_id"], "amount": round(total, 2),
-        "currency": "inr", "payment_status": "initiated", "created_at": datetime.now(timezone.utc).isoformat()
-    })
-    return {"url": session.url, "session_id": session.session_id, "order_id": order_id}
-
-@api_router.get("/checkout/status/{session_id}")
-async def checkout_status(session_id: str, request: Request):
-    from emergentintegrations.payments.stripe.checkout import StripeCheckout
-    user = await get_current_user(request)
-    webhook_url = f"{str(request.base_url).rstrip('/')}/api/webhook/stripe"
-    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
-    status = await stripe_checkout.get_checkout_status(session_id)
-    txn = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
-    if txn and txn.get("payment_status") != "paid" and status.payment_status == "paid":
-        await db.payment_transactions.update_one({"session_id": session_id}, {"$set": {"payment_status": "paid", "status": status.status}})
-        if txn.get("order_id"):
-            await db.orders.update_one({"order_id": txn["order_id"]}, {"$set": {"status": "confirmed", "paid_at": datetime.now(timezone.utc).isoformat()}})
-            await db.cart_items.delete_many({"user_id": user["user_id"]})
-    elif txn and status.status == "expired":
-        await db.payment_transactions.update_one({"session_id": session_id}, {"$set": {"payment_status": "expired", "status": "expired"}})
-        if txn.get("order_id"):
-            await db.orders.update_one({"order_id": txn["order_id"]}, {"$set": {"status": "expired"}})
-    return {"status": status.status, "payment_status": status.payment_status, "amount_total": status.amount_total, "currency": status.currency}
-
-@api_router.post("/webhook/stripe")
-async def stripe_webhook(request: Request):
-    from emergentintegrations.payments.stripe.checkout import StripeCheckout
-    body = await request.body()
-    sig = request.headers.get("Stripe-Signature", "")
-    webhook_url = f"{str(request.base_url).rstrip('/')}/api/webhook/stripe"
-    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
+    # Demo mode: skip Razorpay API, return simulated order
+    if is_demo_mode():
+        demo_rz_order_id = f"order_DEMO_{uuid.uuid4().hex[:12]}"
+        await db.payment_transactions.insert_one({
+            "transaction_id": f"txn_{uuid.uuid4().hex[:12]}",
+            "razorpay_order_id": demo_rz_order_id, "order_id": order_id,
+            "user_id": user["user_id"], "amount": grand_total,
+            "amount_paise": int(grand_total * 100), "currency": "INR",
+            "payment_status": "created", "payment_method": req.payment_method,
+            "demo_mode": True, "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        return {
+            "order_id": order_id, "razorpay_order_id": demo_rz_order_id,
+            "amount": int(grand_total * 100), "currency": "INR",
+            "key_id": RAZORPAY_KEY_ID, "demo_mode": True,
+            "customer_name": user.get("name", ""), "customer_email": user.get("email", "")
+        }
+    # Real Razorpay order
     try:
-        event = await stripe_checkout.handle_webhook(body, sig)
-        if event.payment_status == "paid" and event.session_id:
-            txn = await db.payment_transactions.find_one({"session_id": event.session_id}, {"_id": 0})
-            if txn and txn.get("payment_status") != "paid":
-                await db.payment_transactions.update_one({"session_id": event.session_id}, {"$set": {"payment_status": "paid"}})
-                if txn.get("order_id"):
-                    await db.orders.update_one({"order_id": txn["order_id"]}, {"$set": {"status": "confirmed", "paid_at": datetime.now(timezone.utc).isoformat()}})
-        return {"status": "ok"}
+        rz_client = get_razorpay_client()
+        rz_order = rz_client.order.create({
+            "amount": int(grand_total * 100),  # paise
+            "currency": "INR",
+            "receipt": order_id[:40],
+            "payment_capture": 1,
+            "notes": {"order_id": order_id, "user_id": user["user_id"]}
+        })
+        await db.payment_transactions.insert_one({
+            "transaction_id": f"txn_{uuid.uuid4().hex[:12]}",
+            "razorpay_order_id": rz_order["id"], "order_id": order_id,
+            "user_id": user["user_id"], "amount": grand_total,
+            "amount_paise": int(grand_total * 100), "currency": "INR",
+            "payment_status": "created", "payment_method": req.payment_method,
+            "demo_mode": False, "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        return {
+            "order_id": order_id, "razorpay_order_id": rz_order["id"],
+            "amount": rz_order["amount"], "currency": rz_order["currency"],
+            "key_id": RAZORPAY_KEY_ID, "demo_mode": False,
+            "customer_name": user.get("name", ""), "customer_email": user.get("email", "")
+        }
     except Exception as e:
-        logger.error(f"Webhook error: {e}")
-        return {"status": "error"}
+        logger.error(f"Razorpay order creation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Payment gateway error: {str(e)}")
+
+@api_router.post("/payment/verify")
+async def verify_razorpay_payment(req: RazorpayVerifyRequest, request: Request):
+    user = await get_current_user(request)
+    txn = await db.payment_transactions.find_one({"razorpay_order_id": req.razorpay_order_id}, {"_id": 0})
+    if not txn:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    # Demo mode: auto-verify
+    if txn.get("demo_mode"):
+        await db.payment_transactions.update_one(
+            {"razorpay_order_id": req.razorpay_order_id},
+            {"$set": {"payment_status": "paid", "razorpay_payment_id": req.razorpay_payment_id}}
+        )
+        await _post_payment_success(req.order_id, req.razorpay_payment_id, txn.get("payment_method", "demo"))
+        return {"status": "success", "message": "Payment verified (demo mode)", "order_id": req.order_id}
+    # Real verification
+    try:
+        rz_client = get_razorpay_client()
+        rz_client.utility.verify_payment_signature({
+            "razorpay_order_id": req.razorpay_order_id,
+            "razorpay_payment_id": req.razorpay_payment_id,
+            "razorpay_signature": req.razorpay_signature
+        })
+        await db.payment_transactions.update_one(
+            {"razorpay_order_id": req.razorpay_order_id},
+            {"$set": {"payment_status": "paid", "razorpay_payment_id": req.razorpay_payment_id, "razorpay_signature": req.razorpay_signature}}
+        )
+        await _post_payment_success(req.order_id, req.razorpay_payment_id, txn.get("payment_method", "razorpay"))
+        return {"status": "success", "message": "Payment verified", "order_id": req.order_id}
+    except razorpay.errors.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Payment verification failed")
+
+@api_router.post("/payment/demo-complete")
+async def demo_complete_payment(request: Request):
+    """For demo mode: simulate successful payment."""
+    user = await get_current_user(request)
+    body = await request.json()
+    order_id = body.get("order_id")
+    razorpay_order_id = body.get("razorpay_order_id")
+    if not order_id or not razorpay_order_id:
+        raise HTTPException(status_code=400, detail="order_id and razorpay_order_id required")
+    payment_method = body.get("payment_method", "demo")
+    demo_payment_id = f"pay_DEMO_{uuid.uuid4().hex[:12]}"
+    await db.payment_transactions.update_one(
+        {"razorpay_order_id": razorpay_order_id},
+        {"$set": {"payment_status": "paid", "razorpay_payment_id": demo_payment_id}}
+    )
+    await _post_payment_success(order_id, demo_payment_id, payment_method)
+    return {"status": "success", "message": "Demo payment completed", "order_id": order_id, "payment_id": demo_payment_id}
 
 # ── Orders (Customer) ──
 @api_router.get("/orders")
@@ -444,12 +559,19 @@ async def admin_stats(request: Request):
             if prod:
                 total_cost += prod.get("cost_price", 0) * item.get("quantity", 1)
     net_profit = total_revenue - total_cost
+    # Settlement / Projected Revenue (after 2% fee)
+    total_fees = round(total_revenue * PAYMENT_FEE_PERCENT / 100, 2)
+    projected_revenue = round(total_revenue - total_fees, 2)
+    settlements = await db.settlements.find({}, {"_id": 0}).to_list(10000)
+    actual_settled = sum(s.get("net_settlement", 0) for s in settlements)
     low_stock = [p for p in all_products if 5 <= p.get("stock", 0) <= 20]
     critical_stock = [p for p in all_products if p.get("stock", 0) < 5]
     recent_orders = await db.orders.find({}, {"_id": 0}).sort("created_at", -1).to_list(10)
     return {
         "total_products": total_products, "total_orders": total_orders, "total_users": total_users,
         "total_revenue": round(total_revenue, 2), "net_profit": round(net_profit, 2),
+        "total_fees": total_fees, "projected_revenue": projected_revenue,
+        "actual_settled": round(actual_settled, 2),
         "low_stock": low_stock, "critical_stock": critical_stock, "recent_orders": recent_orders
     }
 
@@ -530,7 +652,7 @@ async def admin_export_orders(request: Request):
     orders = await db.orders.find({}, {"_id": 0}).sort("created_at", -1).to_list(10000)
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Order ID", "Customer Name", "Customer Email", "Items", "Total (INR)", "Status", "Tracking Number", "Date"])
+    writer.writerow(["Order ID", "Customer Name", "Customer Email", "Items", "Total (INR)", "Status", "Tracking Number", "Payment Method", "Date"])
     for o in orders:
         user = await db.users.find_one({"user_id": o.get("user_id")}, {"_id": 0})
         items_str = "; ".join([f"{i['name']} x{i['quantity']}" for i in o.get("items", [])])
@@ -538,11 +660,47 @@ async def admin_export_orders(request: Request):
             o.get("order_id", ""), user.get("name", "") if user else o.get("customer_name", ""),
             user.get("email", "") if user else o.get("customer_email", ""), items_str,
             o.get("total", 0), o.get("status", ""), o.get("tracking_number", ""),
-            o.get("created_at", "")
+            o.get("payment_method", ""), o.get("created_at", "")
         ])
     output.seek(0)
     return StreamingResponse(io.BytesIO(output.getvalue().encode()), media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename=orders_{datetime.now().strftime('%Y%m%d')}.csv"})
+
+# ── Admin Settings (Key Management GUI) ──
+@api_router.get("/admin/settings")
+async def admin_get_settings(request: Request):
+    await require_admin(request)
+    return {
+        "razorpay_key_id": RAZORPAY_KEY_ID,
+        "razorpay_key_secret_masked": RAZORPAY_KEY_SECRET[:8] + "..." if len(RAZORPAY_KEY_SECRET) > 8 else "***",
+        "demo_mode": is_demo_mode(),
+        "payment_fee_percent": PAYMENT_FEE_PERCENT,
+    }
+
+@api_router.put("/admin/settings")
+async def admin_update_settings(req: SettingsUpdateRequest, request: Request):
+    await require_admin(request)
+    global RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, ADMIN_PASSWORD
+    updated = []
+    env_path = ROOT_DIR / '.env'
+    env_content = env_path.read_text()
+    if req.razorpay_key_id:
+        old_val = RAZORPAY_KEY_ID
+        RAZORPAY_KEY_ID = req.razorpay_key_id
+        env_content = env_content.replace(f"RAZORPAY_KEY_ID={old_val}", f"RAZORPAY_KEY_ID={req.razorpay_key_id}")
+        updated.append("razorpay_key_id")
+    if req.razorpay_key_secret:
+        old_val = RAZORPAY_KEY_SECRET
+        RAZORPAY_KEY_SECRET = req.razorpay_key_secret
+        env_content = env_content.replace(f"RAZORPAY_KEY_SECRET={old_val}", f"RAZORPAY_KEY_SECRET={req.razorpay_key_secret}")
+        updated.append("razorpay_key_secret")
+    if req.admin_password:
+        old_val = ADMIN_PASSWORD
+        ADMIN_PASSWORD = req.admin_password
+        env_content = env_content.replace(f"ADMIN_PASSWORD={old_val}", f"ADMIN_PASSWORD={req.admin_password}")
+        updated.append("admin_password")
+    env_path.write_text(env_content)
+    return {"message": f"Updated: {', '.join(updated)}", "demo_mode": is_demo_mode()}
 
 # ── Seed Data ──
 @api_router.post("/seed")
