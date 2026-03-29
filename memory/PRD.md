@@ -1,46 +1,46 @@
-# SnapAlign - Ecommerce Platform PRD
+# Snap Aligner - Ecommerce Platform PRD
 
 ## Problem Statement
-Create an ecommerce platform for SnapAlign - a mobile accessories company. Full feature set with product catalog, cart, checkout, auth, orders, reviews, wishlist, and admin dashboard.
+Premium ecommerce platform for SnapAlign (snapalign.in) - mobile accessories for Indian market. Spigen-inspired dark mode design with warehouse intelligence and admin dashboard.
 
 ## Architecture
 - **Backend**: FastAPI + MongoDB (Motor async driver)
 - **Frontend**: React + Tailwind CSS + Shadcn UI
-- **Auth**: Emergent-managed Google OAuth
-- **Payments**: Stripe via emergentintegrations
-- **Design**: Swiss & High-Contrast (Archetype 4), Light theme, Outfit + Manrope fonts, accent #FF5A00
+- **Auth**: Emergent Google OAuth (customers) + Password auth (admin)
+- **Payments**: Stripe via emergentintegrations (INR)
+- **Design**: Dark mode, #000000 bg, #007AFF electric blue accent, Outfit + DM Sans fonts
 
 ## User Personas
-1. **Customer**: Browse products, add to cart/wishlist, checkout, track orders, leave reviews
-2. **Admin**: Manage products (CRUD), view/update orders, see revenue stats
-
-## Core Requirements
-- Product catalog with 7 categories and search/filter
-- Shopping cart with quantity controls
-- Stripe payment checkout
-- Google social login
-- Order history & tracking
-- Product reviews & ratings
-- Wishlist
-- Admin dashboard with stats, order management, product CRUD
+1. **Customer**: Browse products, add to cart/wishlist, checkout (INR), track orders, leave reviews
+2. **Admin**: Manage products (CRUD with cost/bin), manage orders (tracking numbers), view sales intelligence, warehouse stock, dead stock, CSV export
 
 ## What's Implemented (March 29, 2026)
-- Full backend with 20+ API endpoints
-- 15 seeded products across 7 categories
-- Google OAuth via Emergent Auth (first user = admin)
-- Stripe checkout integration
-- Complete frontend: Home, Shop, Product Detail, Cart, Checkout, Profile, Wishlist, Admin Dashboard
-- Responsive design with glassmorphism navbar
-- Search, category filters, sort options
-
-## Backlog
-- P1: Product image gallery (multiple images per product)
-- P1: Order email notifications
-- P2: Product variants (color/size selection)
-- P2: Coupon/discount codes
-- P2: Inventory management alerts
-- P3: Related products recommendations
-- P3: Analytics dashboard with charts
+- Dark mode Spigen-style frontend with hamburger sidebar navigation
+- 15 products across 4 categories: Tempered Glass, Cases, Holders, Cables & Chargers
+- 3-column product grid with Quick Add, Compare At pricing, Trust badges
+- Floating WhatsApp button for Indian customer support
+- Password-protected admin dashboard (password: snapalign2026)
+- Sales Intelligence: Revenue, Net Profit, Orders, Users
+- Order Management with Tracking Number input
+- Warehouse Intelligence: Stock status (Green/Yellow/Red), Bin Locations
+- Dead Stock Tracker (30-day no-sales detection)
+- Daily Order Export (CSV)
+- Public /track route for customer order tracking
+- INR (₹) currency throughout
+- Google OAuth for customer login
+- Stripe checkout (INR)
+- Product reviews & ratings
+- Wishlist functionality
+- SEO optimized for snapalign.in
 
 ## Collections
-users, user_sessions, products, cart_items, orders, wishlists, reviews, payment_transactions
+users, user_sessions, admin_sessions, products, cart_items, orders, wishlists, reviews, payment_transactions
+
+## Backlog
+- P1: Product image gallery (multiple images)
+- P1: Order email/WhatsApp notifications
+- P2: Product variants (model/color)
+- P2: Coupon/promo codes
+- P2: Analytics charts in admin
+- P3: Inventory reorder automation
+- P3: Customer address management
