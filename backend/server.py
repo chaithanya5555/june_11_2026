@@ -504,7 +504,7 @@ async def admin_update_order(order_id: str, update: OrderStatusUpdate, request: 
         raise HTTPException(status_code=404, detail="Order not found")
     return {"message": "Order updated"}
 
-@api_router.post("/admin/products")
+@api_router.post("/admin/products", status_code=201)
 async def admin_create_product(product: ProductCreate, request: Request):
     await require_admin(request)
     doc = product.model_dump()
