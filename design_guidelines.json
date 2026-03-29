@@ -1,0 +1,76 @@
+{
+  "theme": "Light",
+  "archetype": "Archetype 4 (Swiss & High-Contrast)",
+  "brand": {
+    "name": "SnapAlign",
+    "vibe": "Premium, Magnetic, Minimalist, Precision"
+  },
+  "colors": {
+    "background_primary": "#FFFFFF",
+    "background_secondary": "#F4F4F5",
+    "text_primary": "#09090B",
+    "text_secondary": "#71717A",
+    "primary": "#09090B",
+    "primary_foreground": "#FFFFFF",
+    "accent": "#FF5A00",
+    "border": "#E4E4E7",
+    "error": "#EF4444",
+    "success": "#10B981"
+  },
+  "typography": {
+    "font_family": {
+      "heading": "Outfit, sans-serif",
+      "body": "Manrope, sans-serif"
+    },
+    "scale": {
+      "h1": "text-5xl sm:text-6xl tracking-tighter font-medium",
+      "h2": "text-3xl sm:text-4xl tracking-tight font-medium",
+      "h3": "text-xl sm:text-2xl tracking-tight font-medium",
+      "body": "text-base leading-relaxed",
+      "small": "text-sm text-zinc-500 uppercase tracking-[0.1em]"
+    }
+  },
+  "layout_and_spacing": {
+    "spacing_scale": "Generous: p-6, p-8, p-12, p-16. Use whitespace intentionally.",
+    "border_radius": "rounded-lg (8px max). Keep edges relatively sharp.",
+    "shadows": {
+      "default": "none",
+      "hover": "shadow-[0_8px_30px_rgb(0,0,0,0.04)]",
+      "glass": "shadow-[0_4px_30px_rgba(0,0,0,0.03)]"
+    }
+  },
+  "components": {
+    "header": "Sticky, glassmorphism: bg-white/70 backdrop-blur-xl border-b border-zinc-200. Always visible navigation links on desktop.",
+    "hero_section": "Asymmetric bento grid or pure 2-column. Left align big text, huge high-res image on right. No heavy blanket overlays.",
+    "product_card": "Cardless design. Product image inside a bg-zinc-100 container, aspect-square. Text left-aligned below. Hover: Image scale 105%. No card borders.",
+    "buttons": "Solid black (bg-zinc-950 text-white) for primary. Sharp padding px-6 py-3. No extreme pill shapes (rounded-md max).",
+    "admin_dashboard": "Control Room Grid. Tight gaps (gap-4). Dense, functional, 1px borders, no shadows. Use Shadcn Table and Recharts.",
+    "forms_checkout": "Shadcn components heavily customized to remove Vercel look. 1px solid border on inputs, pure white background.",
+    "cart_drawer": "Use Shadcn Sheet. Clean layout, high contrast total price."
+  },
+  "motion": {
+    "hover": "transition-all duration-300 ease-out",
+    "page_load": "framer-motion staggered fade-in up (y: 20, opacity: 0 -> y: 0, opacity: 1)",
+    "image_zoom": "overflow-hidden container, scale-105 on hover for product images"
+  },
+  "media": {
+    "hero": "https://images.unsplash.com/photo-1764025130362-0162c3dd2035?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NDh8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjB0ZWNoJTIwd29ya3NwYWNlfGVufDB8fHx8MTc3NDgyMDUyMXww&ixlib=rb-4.1.0&q=85",
+    "product_cases": "https://images.unsplash.com/photo-1774102619965-5a49ce4f6329?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2ODl8MHwxfHNlYXJjaHwzfHxtaW5pbWFsaXN0JTIwcGhvbmUlMjBjYXNlfGVufDB8fHx8MTc3NDgyMDUxM3ww&ixlib=rb-4.1.0&q=85",
+    "product_chargers": "https://images.pexels.com/photos/5961044/pexels-photo-5961044.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "product_powerbank": "https://images.pexels.com/photos/4072683/pexels-photo-4072683.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "product_earphones": "https://images.unsplash.com/photo-1713618651165-a3cf7f85506c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDJ8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBlYXJwaG9uZXN8ZW58MHx8fHwxNzc0ODIwNTIzfDA&ixlib=rb-4.1.0&q=85"
+  },
+  "icons": "@phosphor-icons/react",
+  "instructions_to_main_agent": [
+    "Run `yarn add @phosphor-icons/react`.",
+    "Strictly apply `data-testid` to all interactive elements, links, buttons, and forms (e.g., data-testid='checkout-button').",
+    "Install Google Fonts 'Outfit' (weights 400, 500, 600, 700) and 'Manrope' (weights 400, 500, 600) in index.html.",
+    "Do NOT use 'Inter' for headings. Headings must be 'Outfit'.",
+    "Build Shadcn components but override the default rounded-md to match the layout rules (max 8px / rounded-lg).",
+    "Ensure header is sticky and uses `backdrop-blur-xl` and `bg-white/70`.",
+    "Never use generic placeholder images. Use the provided media URLs.",
+    "Implement a mobile-first responsive grid for the product catalog.",
+    "Ensure all text over gray or transparent backgrounds meets minimum contrast ratios.",
+    "For the admin dashboard, utilize Shadcn tables and Recharts, maintaining a sharp, cardless aesthetic with 1px borders."
+  ]
+}
