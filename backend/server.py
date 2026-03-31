@@ -52,6 +52,18 @@ api_router = APIRouter(prefix="/api")
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# ── Health Check ──
+@api_router.get("/health")
+async def health_check():
+    """Health check endpoint for deployment monitoring"""
+    try:
+        # Quick DB ping
+        await db.command("ping")
+        return {"status": "healthy", "database": "connected"}
+    except Exception as e:
+        return {"status": "degraded", "database": "disconnected", "error": str(e)}
+
+
 # ── Models ──
 class ProductCreate(BaseModel):
     name: str
