@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingBag, ArrowLeft, ShieldCheck, CreditCard, Lightning } from '@phosphor-icons/react';
+import { ShoppingBag, ArrowLeft, ShieldCheck, CreditCard, Lightning, Tag } from '@phosphor-icons/react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -30,6 +31,9 @@ export default function Checkout() {
   const [selectedMethod, setSelectedMethod] = useState('upi_phonepe');
   const [processing, setProcessing] = useState(false);
   const [paymentConfig, setPaymentConfig] = useState(null);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponApplied, setCouponApplied] = useState(null);
+  const [validating, setValidating] = useState(false);
 
   useEffect(() => { if (!user) login(); }, [user, login]);
   useEffect(() => {
@@ -37,22 +41,41 @@ export default function Checkout() {
   }, []);
 
   const shipping = cartTotal >= 500 ? 0 : 49;
-  const total = cartTotal + shipping;
+  const discount = couponApplied?.discount || 0;
+  const total = Math.max(0, cartTotal + shipping - discount);
+
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setValidating(true);
+    try {
+      const res = await axios.post(`${API}/coupons/validate`, { code: couponCode, cart_total: cartTotal }, { withCredentials: true });
+      setCouponApplied(res.data);
+      toast.success(res.data.message);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Invalid coupon');
+      setCouponApplied(null);
+    }
+    setValidating(false);
+  };
+
+  const removeCoupon = () => {
+    setCouponApplied(null);
+    setCouponCode('');
+  };
 
   const handlePayment = async () => {
     if (cartItems.length === 0) { toast.error('Cart is empty'); return; }
     setProcessing(true);
 
     try {
-      // Step 1: Create order
       const orderRes = await axios.post(`${API}/payment/create-order`, {
         origin_url: window.location.origin,
-        payment_method: selectedMethod
+        payment_method: selectedMethod,
+        coupon_code: couponApplied?.code || null
       }, { withCredentials: true });
 
       const { order_id, razorpay_order_id, amount, key_id, demo_mode, customer_name, customer_email } = orderRes.data;
 
-      // Step 2: Demo mode → simulate payment
       if (demo_mode) {
         toast.info('Demo Mode: Simulating payment...', { duration: 2000 });
         await new Promise(r => setTimeout(r, 1500));
@@ -64,7 +87,6 @@ export default function Checkout() {
         return;
       }
 
-      // Step 3: Real Razorpay checkout
       const prefill = { name: customer_name, email: customer_email };
       const methodConfig = {};
       if (selectedMethod === 'upi_phonepe') { methodConfig.upi = { flow: 'intent', apps: ['phonepe'] }; }
@@ -127,7 +149,7 @@ export default function Checkout() {
                 </h2>
                 {paymentConfig?.demo_mode && (
                   <div className="mb-4 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-400 flex items-center gap-2">
-                    <Lightning size={14} /> <span><strong>Demo Mode</strong> — Payments are simulated. Add real Razorpay keys in Admin &gt; Settings.</span>
+                    <Lightning size={14} /> <span><strong>Demo Mode</strong> -- Payments are simulated. Add real Razorpay keys in Admin &gt; Settings.</span>
                   </div>
                 )}
                 <div className="space-y-2.5">
@@ -154,7 +176,7 @@ export default function Checkout() {
                 </div>
                 {selectedMethod === 'mobikwik' && (
                   <div className="mt-3 px-3 py-2 bg-[#E42529]/10 border border-[#E42529]/20 rounded-lg text-xs text-[#E42529]">
-                    ZIP Pay Later available — Buy now, pay in 3 easy installments at 0% interest
+                    ZIP Pay Later available -- Buy now, pay in 3 easy installments at 0% interest
                   </div>
                 )}
               </div>
@@ -173,9 +195,32 @@ export default function Checkout() {
                     </div>
                   ))}
                 </div>
-                <div className="border-t border-white/10 mt-4 pt-4 space-y-1.5">
+
+                {/* Coupon Input */}
+                <div className="border-t border-white/10 mt-4 pt-4">
+                  {couponApplied ? (
+                    <div data-testid="coupon-applied" className="flex items-center justify-between bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2 mb-3">
+                      <div className="flex items-center gap-2">
+                        <Tag size={14} className="text-green-400" />
+                        <span className="text-xs font-mono font-bold text-green-400">{couponApplied.code}</span>
+                        <span className="text-[10px] text-green-400/70">-₹{discount.toFixed(0)}</span>
+                      </div>
+                      <button data-testid="remove-coupon-btn" onClick={removeCoupon} className="text-[10px] text-red-400 hover:text-red-300">Remove</button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2 mb-3">
+                      <Input data-testid="coupon-input" value={couponCode} onChange={e => setCouponCode(e.target.value.toUpperCase())} placeholder="Coupon code" className="flex-1 h-9 bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-lg text-xs font-mono" />
+                      <Button data-testid="apply-coupon-btn" onClick={applyCoupon} disabled={validating} variant="outline" className="h-9 border-white/20 text-white hover:bg-white/5 rounded-lg text-xs px-3">
+                        {validating ? '...' : 'Apply'}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
                   <div className="flex justify-between text-xs"><span className="text-white/40">Subtotal ({cartCount})</span><span className="text-white">&#8377;{cartTotal.toLocaleString('en-IN')}</span></div>
                   <div className="flex justify-between text-xs"><span className="text-white/40">Shipping</span><span className={shipping === 0 ? 'text-green-400 text-xs' : 'text-white text-xs'}>{shipping === 0 ? 'Free' : `₹${shipping}`}</span></div>
+                  {discount > 0 && <div className="flex justify-between text-xs"><span className="text-green-400">Coupon Discount</span><span className="text-green-400">-₹{discount.toFixed(0)}</span></div>}
                   <div className="border-t border-white/10 pt-2 flex justify-between"><span className="text-sm font-medium text-white">Total</span><span data-testid="checkout-total" className="text-lg font-semibold text-white">&#8377;{total.toLocaleString('en-IN')}</span></div>
                 </div>
                 <Button data-testid="pay-now-btn" onClick={handlePayment} disabled={processing} className="w-full bg-[#007AFF] hover:bg-[#005BB5] text-white rounded-lg h-12 text-sm font-medium mt-4">

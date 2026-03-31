@@ -19,18 +19,30 @@ export default function ProductDetail() {
   const [reviewText, setReviewText] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState(null);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      try { const r = await axios.get(`${API}/products/${id}`); setProduct(r.data); } catch { setProduct(null); }
+      try {
+        const r = await axios.get(`${API}/products/${id}`);
+        setProduct(r.data);
+        if (r.data.variants?.length > 0) {
+          setSelectedVariant(r.data.variants[0]);
+        }
+      } catch { setProduct(null); }
       setLoading(false);
     })();
   }, [id]);
 
+  const currentPrice = product ? product.price + (selectedVariant?.price_modifier || 0) : 0;
+
   const handleAddToCart = async () => {
     if (!user) { login(); return; }
-    try { await addToCart(product.product_id, quantity); toast.success(`Added ${quantity} item(s)`); } catch { toast.error('Failed'); }
+    try {
+      await addToCart(product.product_id, quantity);
+      toast.success(`Added ${quantity} item(s)`);
+    } catch { toast.error('Failed'); }
   };
 
   const handleWishlist = async () => {
@@ -55,6 +67,9 @@ export default function ProductDetail() {
   if (loading) return <div className="max-w-7xl mx-auto px-4 py-12"><div className="grid lg:grid-cols-2 gap-12"><div className="bg-white/5 rounded-xl aspect-square animate-pulse" /><div className="space-y-4">{[1,2,3,4].map(i=><div key={i} className="h-6 bg-white/5 rounded" />)}</div></div></div>;
   if (!product) return <div className="text-center py-20 text-white/40">Product not found</div>;
 
+  const variants = product.variants || [];
+  const variantTypes = [...new Set(variants.map(v => v.type))];
+
   return (
     <div data-testid="product-detail-page" className="min-h-screen bg-black">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -77,17 +92,52 @@ export default function ProductDetail() {
               </div>
             )}
             <div className="flex items-center gap-3 mb-6">
-              <span data-testid="product-price" className="text-2xl font-semibold text-white">&#8377;{product.price.toLocaleString('en-IN')}</span>
+              <span data-testid="product-price" className="text-2xl font-semibold text-white">&#8377;{currentPrice.toLocaleString('en-IN')}</span>
               {product.compare_at_price && <span className="text-base text-white/30 line-through">&#8377;{product.compare_at_price.toLocaleString('en-IN')}</span>}
-              {product.compare_at_price && <span className="text-xs font-bold text-green-400 bg-green-400/10 px-2 py-0.5 rounded">{Math.round((1 - product.price / product.compare_at_price) * 100)}% OFF</span>}
+              {product.compare_at_price && <span className="text-xs font-bold text-green-400 bg-green-400/10 px-2 py-0.5 rounded">{Math.round((1 - currentPrice / product.compare_at_price) * 100)}% OFF</span>}
             </div>
-            <p className="text-sm text-white/50 leading-relaxed mb-8">{product.description}</p>
+            <p className="text-sm text-white/50 leading-relaxed mb-6">{product.description}</p>
+
+            {/* Variants */}
+            {variantTypes.length > 0 && (
+              <div className="mb-6 space-y-3" data-testid="variant-selector">
+                {variantTypes.map(type => (
+                  <div key={type}>
+                    <p className="text-[10px] text-white/40 uppercase tracking-widest mb-2">{type}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {variants.filter(v => v.type === type).map(v => (
+                        <button
+                          key={v.variant_id}
+                          data-testid={`variant-${v.variant_id}`}
+                          onClick={() => setSelectedVariant(v)}
+                          className={`px-4 py-2 rounded-lg border text-xs font-medium transition-all ${
+                            selectedVariant?.variant_id === v.variant_id
+                              ? 'border-[#007AFF] bg-[#007AFF]/10 text-white'
+                              : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20'
+                          }`}
+                        >
+                          {v.value}
+                          {v.price_modifier > 0 && <span className="text-[9px] text-white/30 ml-1">+₹{v.price_modifier}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="flex items-center gap-4 mb-6">
               <div className="flex items-center border border-white/10 rounded-lg">
                 <button data-testid="decrease-qty" onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/5"><Minus size={14} /></button>
                 <span data-testid="quantity-display" className="w-10 text-center text-sm">{quantity}</span>
                 <button data-testid="increase-qty" onClick={() => setQuantity(quantity + 1)} className="w-10 h-10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/5"><Plus size={14} /></button>
               </div>
+              {selectedVariant && (
+                <span className="text-[10px] text-white/30">
+                  Selected: <span className="text-white/60">{selectedVariant.value}</span>
+                  {selectedVariant.stock !== undefined && <span className="ml-2">({selectedVariant.stock} in stock)</span>}
+                </span>
+              )}
             </div>
             <div className="flex gap-3 mb-8">
               <Button data-testid="add-to-cart-detail-btn" onClick={handleAddToCart} className="flex-1 bg-[#007AFF] hover:bg-[#005BB5] text-white rounded-lg h-12 text-sm font-medium"><ShoppingBag size={16} className="mr-2" /> Add to Cart</Button>

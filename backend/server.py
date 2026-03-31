@@ -8,11 +8,13 @@ import logging
 import httpx
 import csv
 import io
+import bcrypt
 from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional
 import uuid
 from datetime import datetime, timezone, timedelta
+from collections import defaultdict
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -24,7 +26,7 @@ stripe_api_key = os.environ.get('STRIPE_API_KEY', '')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'snapalign2026')
 RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', 'rzp_test_DEMO_MODE')
 RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', 'DEMO_SECRET_REPLACE_ME')
-PAYMENT_FEE_PERCENT = 2.0  # 2% payment gateway fee
+PAYMENT_FEE_PERCENT = 2.0
 
 import razorpay
 import hashlib
@@ -35,6 +37,14 @@ def get_razorpay_client():
 
 def is_demo_mode():
     return RAZORPAY_KEY_ID.startswith('rzp_test_DEMO')
+
+# ── Password Helpers ──
+def hash_password(password: str) -> str:
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -54,6 +64,7 @@ class ProductCreate(BaseModel):
     stock: int = 100
     featured: bool = False
     bin_location: str = ""
+    variants: Optional[List[dict]] = None
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
@@ -66,10 +77,12 @@ class ProductUpdate(BaseModel):
     stock: Optional[int] = None
     featured: Optional[bool] = None
     bin_location: Optional[str] = None
+    variants: Optional[List[dict]] = None
 
 class CartItemAdd(BaseModel):
     product_id: str
     quantity: int = 1
+    variant_id: Optional[str] = None
 
 class ReviewCreate(BaseModel):
     rating: int
@@ -77,7 +90,8 @@ class ReviewCreate(BaseModel):
 
 class CheckoutRequest(BaseModel):
     origin_url: str
-    payment_method: str = "razorpay"  # razorpay, upi_phonepe, upi_gpay, paytm, mobikwik
+    payment_method: str = "razorpay"
+    coupon_code: Optional[str] = None
 
 class RazorpayVerifyRequest(BaseModel):
     razorpay_order_id: str
@@ -89,16 +103,46 @@ class SettingsUpdateRequest(BaseModel):
     razorpay_key_id: Optional[str] = None
     razorpay_key_secret: Optional[str] = None
     admin_password: Optional[str] = None
+    whatsapp_number: Optional[str] = None
 
 class OrderStatusUpdate(BaseModel):
     status: Optional[str] = None
     tracking_number: Optional[str] = None
 
 class AdminLoginRequest(BaseModel):
+    email: Optional[str] = None
     password: str
 
 class TrackRequest(BaseModel):
     order_id: str
+
+class CouponCreate(BaseModel):
+    code: str
+    type: str = "percentage"
+    value: float
+    min_order_amount: float = 0
+    max_uses: int = 0
+    expires_at: Optional[str] = None
+    active: bool = True
+
+class CouponUpdate(BaseModel):
+    code: Optional[str] = None
+    type: Optional[str] = None
+    value: Optional[float] = None
+    min_order_amount: Optional[float] = None
+    max_uses: Optional[int] = None
+    expires_at: Optional[str] = None
+    active: Optional[bool] = None
+
+class CouponValidateRequest(BaseModel):
+    code: str
+    cart_total: float
+
+class AdminUserCreate(BaseModel):
+    email: str
+    name: str
+    password: str
+    role: str = "warehouse_manager"
 
 # ── Auth Helpers ──
 async def get_current_user(request: Request) -> dict:
@@ -148,7 +192,13 @@ async def require_admin(request: Request) -> dict:
         expires_at = expires_at.replace(tzinfo=timezone.utc)
     if expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=401, detail="Admin session expired")
-    return {"role": "admin"}
+    return {"role": session.get("role", "owner"), "name": session.get("name", "Admin"), "email": session.get("email", "")}
+
+async def require_owner(request: Request) -> dict:
+    admin = await require_admin(request)
+    if admin["role"] != "owner":
+        raise HTTPException(status_code=403, detail="Owner access required")
+    return admin
 
 # ── Auth Routes ──
 @api_router.post("/auth/session")
@@ -201,24 +251,42 @@ async def logout(request: Request, response: Response):
     response.delete_cookie(key="session_token", path="/", secure=True, samesite="none")
     return {"message": "Logged out"}
 
-# ── Admin Auth ──
+# ── Admin Auth (RBAC) ──
 @api_router.post("/admin/login")
 async def admin_login(req: AdminLoginRequest, response: Response):
-    if req.password != ADMIN_PASSWORD:
-        raise HTTPException(status_code=401, detail="Invalid password")
-    token = f"admin_{uuid.uuid4().hex}"
-    await db.admin_sessions.insert_one({
-        "token": token,
-        "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
-        "created_at": datetime.now(timezone.utc).isoformat()
-    })
-    response.set_cookie(key="admin_token", value=token, httponly=True, secure=True, samesite="none", path="/", max_age=7*24*60*60)
-    return {"message": "Logged in", "token": token}
+    if req.email:
+        admin_user = await db.admin_users.find_one({"email": req.email.lower().strip()}, {"_id": 0})
+        if admin_user and verify_password(req.password, admin_user["password_hash"]):
+            token = f"admin_{uuid.uuid4().hex}"
+            await db.admin_sessions.insert_one({
+                "token": token,
+                "admin_user_id": admin_user["admin_user_id"],
+                "role": admin_user["role"],
+                "name": admin_user["name"],
+                "email": admin_user["email"],
+                "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            response.set_cookie(key="admin_token", value=token, httponly=True, secure=True, samesite="none", path="/", max_age=7*24*60*60)
+            return {"message": "Logged in", "token": token, "role": admin_user["role"], "name": admin_user["name"]}
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    # Legacy password-only login (backward compat)
+    if req.password == ADMIN_PASSWORD:
+        token = f"admin_{uuid.uuid4().hex}"
+        await db.admin_sessions.insert_one({
+            "token": token, "role": "owner", "name": "Owner",
+            "email": "owner@snapalign.com",
+            "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        response.set_cookie(key="admin_token", value=token, httponly=True, secure=True, samesite="none", path="/", max_age=7*24*60*60)
+        return {"message": "Logged in", "token": token, "role": "owner", "name": "Owner"}
+    raise HTTPException(status_code=401, detail="Invalid password")
 
 @api_router.get("/admin/verify")
 async def admin_verify(request: Request):
-    await require_admin(request)
-    return {"authenticated": True}
+    admin = await require_admin(request)
+    return {"authenticated": True, "role": admin["role"], "name": admin["name"]}
 
 @api_router.post("/admin/logout")
 async def admin_logout(request: Request, response: Response):
@@ -297,11 +365,17 @@ async def add_to_cart(item: CartItemAdd, request: Request):
     product = await db.products.find_one({"product_id": item.product_id}, {"_id": 0})
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    existing = await db.cart_items.find_one({"user_id": user["user_id"], "product_id": item.product_id}, {"_id": 0})
+    query = {"user_id": user["user_id"], "product_id": item.product_id}
+    if item.variant_id:
+        query["variant_id"] = item.variant_id
+    existing = await db.cart_items.find_one(query, {"_id": 0})
     if existing:
-        await db.cart_items.update_one({"user_id": user["user_id"], "product_id": item.product_id}, {"$set": {"quantity": existing["quantity"] + item.quantity}})
+        await db.cart_items.update_one(query, {"$set": {"quantity": existing["quantity"] + item.quantity}})
     else:
-        await db.cart_items.insert_one({"cart_item_id": f"ci_{uuid.uuid4().hex[:12]}", "user_id": user["user_id"], "product_id": item.product_id, "quantity": item.quantity, "added_at": datetime.now(timezone.utc).isoformat()})
+        doc = {"cart_item_id": f"ci_{uuid.uuid4().hex[:12]}", "user_id": user["user_id"], "product_id": item.product_id, "quantity": item.quantity, "added_at": datetime.now(timezone.utc).isoformat()}
+        if item.variant_id:
+            doc["variant_id"] = item.variant_id
+        await db.cart_items.insert_one(doc)
     return {"message": "Added to cart"}
 
 @api_router.put("/cart/{product_id}")
@@ -346,25 +420,114 @@ async def toggle_wishlist(product_id: str, request: Request):
     await db.wishlists.insert_one({"wishlist_id": f"wl_{uuid.uuid4().hex[:12]}", "user_id": user["user_id"], "product_id": product_id, "added_at": datetime.now(timezone.utc).isoformat()})
     return {"action": "added", "message": "Added to wishlist"}
 
+# ── Coupon Routes ──
+@api_router.get("/admin/coupons")
+async def admin_get_coupons(request: Request):
+    await require_admin(request)
+    return await db.coupons.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
+
+@api_router.post("/admin/coupons", status_code=201)
+async def admin_create_coupon(coupon: CouponCreate, request: Request):
+    await require_owner(request)
+    existing = await db.coupons.find_one({"code": coupon.code.upper().strip()}, {"_id": 0})
+    if existing:
+        raise HTTPException(status_code=400, detail="Coupon code already exists")
+    doc = coupon.model_dump()
+    doc["code"] = doc["code"].upper().strip()
+    doc["coupon_id"] = f"cpn_{uuid.uuid4().hex[:12]}"
+    doc["used_count"] = 0
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    await db.coupons.insert_one(doc)
+    return await db.coupons.find_one({"coupon_id": doc["coupon_id"]}, {"_id": 0})
+
+@api_router.put("/admin/coupons/{coupon_id}")
+async def admin_update_coupon(coupon_id: str, update: CouponUpdate, request: Request):
+    await require_owner(request)
+    update_data = {k: v for k, v in update.model_dump().items() if v is not None}
+    if "code" in update_data:
+        update_data["code"] = update_data["code"].upper().strip()
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    result = await db.coupons.update_one({"coupon_id": coupon_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    return await db.coupons.find_one({"coupon_id": coupon_id}, {"_id": 0})
+
+@api_router.delete("/admin/coupons/{coupon_id}")
+async def admin_delete_coupon(coupon_id: str, request: Request):
+    await require_owner(request)
+    result = await db.coupons.delete_one({"coupon_id": coupon_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    return {"message": "Coupon deleted"}
+
+@api_router.post("/coupons/validate")
+async def validate_coupon(req: CouponValidateRequest, request: Request):
+    await get_current_user(request)
+    coupon = await db.coupons.find_one({"code": req.code.upper().strip(), "active": True}, {"_id": 0})
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Invalid coupon code")
+    if coupon.get("expires_at"):
+        exp = datetime.fromisoformat(coupon["expires_at"])
+        if exp.tzinfo is None:
+            exp = exp.replace(tzinfo=timezone.utc)
+        if exp < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="Coupon has expired")
+    if coupon.get("max_uses", 0) > 0 and coupon.get("used_count", 0) >= coupon["max_uses"]:
+        raise HTTPException(status_code=400, detail="Coupon usage limit reached")
+    if req.cart_total < coupon.get("min_order_amount", 0):
+        raise HTTPException(status_code=400, detail=f"Minimum order amount is ₹{coupon['min_order_amount']}")
+    if coupon["type"] == "percentage":
+        discount = round(req.cart_total * coupon["value"] / 100, 2)
+    else:
+        discount = min(coupon["value"], req.cart_total)
+    return {
+        "valid": True,
+        "code": coupon["code"],
+        "type": coupon["type"],
+        "value": coupon["value"],
+        "discount": discount,
+        "message": f"Coupon applied! You save ₹{discount:.0f}"
+    }
+
 # ── Checkout / Razorpay Payment ──
 
+async def _apply_coupon(coupon_code: str, subtotal: float) -> dict:
+    if not coupon_code:
+        return {"discount": 0, "coupon_code": None}
+    coupon = await db.coupons.find_one({"code": coupon_code.upper().strip(), "active": True}, {"_id": 0})
+    if not coupon:
+        return {"discount": 0, "coupon_code": None}
+    if coupon.get("expires_at"):
+        exp = datetime.fromisoformat(coupon["expires_at"])
+        if exp.tzinfo is None:
+            exp = exp.replace(tzinfo=timezone.utc)
+        if exp < datetime.now(timezone.utc):
+            return {"discount": 0, "coupon_code": None}
+    if coupon.get("max_uses", 0) > 0 and coupon.get("used_count", 0) >= coupon["max_uses"]:
+        return {"discount": 0, "coupon_code": None}
+    if subtotal < coupon.get("min_order_amount", 0):
+        return {"discount": 0, "coupon_code": None}
+    if coupon["type"] == "percentage":
+        discount = round(subtotal * coupon["value"] / 100, 2)
+    else:
+        discount = min(coupon["value"], subtotal)
+    await db.coupons.update_one({"coupon_id": coupon["coupon_id"]}, {"$inc": {"used_count": 1}})
+    return {"discount": discount, "coupon_code": coupon["code"], "coupon_id": coupon["coupon_id"]}
+
 async def _post_payment_success(order_id: str, payment_id: str, method: str):
-    """Automated post-payment: update order, deduct stock, record settlement."""
     order = await db.orders.find_one({"order_id": order_id}, {"_id": 0})
     if not order or order.get("status") == "confirmed":
         return
-    # 1. Update order status to Paid/Confirmed
     await db.orders.update_one({"order_id": order_id}, {"$set": {
         "status": "confirmed", "paid_at": datetime.now(timezone.utc).isoformat(),
         "payment_id": payment_id, "payment_method": method
     }})
-    # 2. Deduct warehouse stock
     for item in order.get("items", []):
         await db.products.update_one(
             {"product_id": item["product_id"], "stock": {"$gte": item["quantity"]}},
             {"$inc": {"stock": -item["quantity"]}}
         )
-    # 3. Calculate settlement (total - 2% fee)
     total = order.get("total", 0)
     fee = round(total * PAYMENT_FEE_PERCENT / 100, 2)
     settlement = round(total - fee, 2)
@@ -375,15 +538,13 @@ async def _post_payment_success(order_id: str, payment_id: str, method: str):
         "fee_amount": fee, "net_settlement": settlement,
         "method": method, "created_at": datetime.now(timezone.utc).isoformat()
     })
-    # 4. Clear cart
     user_id = order.get("user_id")
     if user_id:
         await db.cart_items.delete_many({"user_id": user_id})
-    logger.info(f"Post-payment: Order {order_id} confirmed, stock deducted, settlement ₹{settlement}")
+    logger.info(f"Post-payment: Order {order_id} confirmed, stock deducted, settlement Rs{settlement}")
 
 @api_router.get("/payment/config")
 async def payment_config():
-    """Return Razorpay key ID for frontend (public info only)."""
     return {
         "key_id": RAZORPAY_KEY_ID,
         "demo_mode": is_demo_mode(),
@@ -405,20 +566,35 @@ async def create_razorpay_order(req: CheckoutRequest, request: Request):
     for ci in cart_items:
         product = await db.products.find_one({"product_id": ci["product_id"]}, {"_id": 0})
         if product:
-            item_total = product["price"] * ci["quantity"]
+            price = product["price"]
+            if ci.get("variant_id") and product.get("variants"):
+                variant = next((v for v in product["variants"] if v.get("variant_id") == ci["variant_id"]), None)
+                if variant:
+                    price = price + variant.get("price_modifier", 0)
+            item_total = price * ci["quantity"]
             total += item_total
-            order_items.append({"product_id": product["product_id"], "name": product["name"], "price": product["price"], "quantity": ci["quantity"], "image": product.get("image", "")})
+            item_data = {"product_id": product["product_id"], "name": product["name"], "price": price, "quantity": ci["quantity"], "image": product.get("image", "")}
+            if ci.get("variant_id"):
+                item_data["variant_id"] = ci["variant_id"]
+            order_items.append(item_data)
     shipping = 0 if total >= 500 else 49
-    grand_total = round(total + shipping, 2)
+    coupon_result = await _apply_coupon(req.coupon_code, total)
+    discount = coupon_result["discount"]
+    grand_total = round(total + shipping - discount, 2)
+    if grand_total < 0:
+        grand_total = 0
     order_id = f"ORD-{uuid.uuid4().hex[:8].upper()}"
-    await db.orders.insert_one({
+    order_doc = {
         "order_id": order_id, "user_id": user["user_id"], "items": order_items,
-        "subtotal": round(total, 2), "shipping": shipping, "total": grand_total,
-        "status": "pending_payment", "tracking_number": "", "payment_method": req.payment_method,
+        "subtotal": round(total, 2), "shipping": shipping, "discount": discount,
+        "total": grand_total, "status": "pending_payment", "tracking_number": "",
+        "payment_method": req.payment_method,
         "customer_name": user.get("name", ""), "customer_email": user.get("email", ""),
         "created_at": datetime.now(timezone.utc).isoformat()
-    })
-    # Demo mode: skip Razorpay API, return simulated order
+    }
+    if coupon_result["coupon_code"]:
+        order_doc["coupon_code"] = coupon_result["coupon_code"]
+    await db.orders.insert_one(order_doc)
     if is_demo_mode():
         demo_rz_order_id = f"order_DEMO_{uuid.uuid4().hex[:12]}"
         await db.payment_transactions.insert_one({
@@ -433,13 +609,13 @@ async def create_razorpay_order(req: CheckoutRequest, request: Request):
             "order_id": order_id, "razorpay_order_id": demo_rz_order_id,
             "amount": int(grand_total * 100), "currency": "INR",
             "key_id": RAZORPAY_KEY_ID, "demo_mode": True,
-            "customer_name": user.get("name", ""), "customer_email": user.get("email", "")
+            "customer_name": user.get("name", ""), "customer_email": user.get("email", ""),
+            "discount": discount
         }
-    # Real Razorpay order
     try:
         rz_client = get_razorpay_client()
         rz_order = rz_client.order.create({
-            "amount": int(grand_total * 100),  # paise
+            "amount": int(grand_total * 100),
             "currency": "INR",
             "receipt": order_id[:40],
             "payment_capture": 1,
@@ -457,7 +633,8 @@ async def create_razorpay_order(req: CheckoutRequest, request: Request):
             "order_id": order_id, "razorpay_order_id": rz_order["id"],
             "amount": rz_order["amount"], "currency": rz_order["currency"],
             "key_id": RAZORPAY_KEY_ID, "demo_mode": False,
-            "customer_name": user.get("name", ""), "customer_email": user.get("email", "")
+            "customer_name": user.get("name", ""), "customer_email": user.get("email", ""),
+            "discount": discount
         }
     except Exception as e:
         logger.error(f"Razorpay order creation failed: {e}")
@@ -465,11 +642,10 @@ async def create_razorpay_order(req: CheckoutRequest, request: Request):
 
 @api_router.post("/payment/verify")
 async def verify_razorpay_payment(req: RazorpayVerifyRequest, request: Request):
-    user = await get_current_user(request)
+    await get_current_user(request)
     txn = await db.payment_transactions.find_one({"razorpay_order_id": req.razorpay_order_id}, {"_id": 0})
     if not txn:
         raise HTTPException(status_code=404, detail="Transaction not found")
-    # Demo mode: auto-verify
     if txn.get("demo_mode"):
         await db.payment_transactions.update_one(
             {"razorpay_order_id": req.razorpay_order_id},
@@ -477,7 +653,6 @@ async def verify_razorpay_payment(req: RazorpayVerifyRequest, request: Request):
         )
         await _post_payment_success(req.order_id, req.razorpay_payment_id, txn.get("payment_method", "demo"))
         return {"status": "success", "message": "Payment verified (demo mode)", "order_id": req.order_id}
-    # Real verification
     try:
         rz_client = get_razorpay_client()
         rz_client.utility.verify_payment_signature({
@@ -496,8 +671,7 @@ async def verify_razorpay_payment(req: RazorpayVerifyRequest, request: Request):
 
 @api_router.post("/payment/demo-complete")
 async def demo_complete_payment(request: Request):
-    """For demo mode: simulate successful payment."""
-    user = await get_current_user(request)
+    await get_current_user(request)
     body = await request.json()
     order_id = body.get("order_id")
     razorpay_order_id = body.get("razorpay_order_id")
@@ -559,7 +733,6 @@ async def admin_stats(request: Request):
             if prod:
                 total_cost += prod.get("cost_price", 0) * item.get("quantity", 1)
     net_profit = total_revenue - total_cost
-    # Settlement / Projected Revenue (after 2% fee)
     total_fees = round(total_revenue * PAYMENT_FEE_PERCENT / 100, 2)
     projected_revenue = round(total_revenue - total_fees, 2)
     settlements = await db.settlements.find({}, {"_id": 0}).to_list(10000)
@@ -567,12 +740,55 @@ async def admin_stats(request: Request):
     low_stock = [p for p in all_products if 5 <= p.get("stock", 0) <= 20]
     critical_stock = [p for p in all_products if p.get("stock", 0) < 5]
     recent_orders = await db.orders.find({}, {"_id": 0}).sort("created_at", -1).to_list(10)
+    total_coupons = await db.coupons.count_documents({"active": True})
     return {
         "total_products": total_products, "total_orders": total_orders, "total_users": total_users,
         "total_revenue": round(total_revenue, 2), "net_profit": round(net_profit, 2),
         "total_fees": total_fees, "projected_revenue": projected_revenue,
         "actual_settled": round(actual_settled, 2),
-        "low_stock": low_stock, "critical_stock": critical_stock, "recent_orders": recent_orders
+        "low_stock": low_stock, "critical_stock": critical_stock, "recent_orders": recent_orders,
+        "total_coupons": total_coupons
+    }
+
+@api_router.get("/admin/analytics")
+async def admin_analytics(request: Request):
+    await require_admin(request)
+    now = datetime.now(timezone.utc)
+    all_orders = await db.orders.find({"status": {"$in": ["confirmed", "shipped", "delivered"]}}, {"_id": 0}).to_list(10000)
+    daily_revenue = defaultdict(float)
+    daily_orders = defaultdict(int)
+    category_revenue = defaultdict(float)
+    status_counts = defaultdict(int)
+    product_sales = defaultdict(lambda: {"name": "", "quantity": 0, "revenue": 0})
+    for o in all_orders:
+        created = o.get("created_at", "")
+        if created:
+            day = created[:10]
+            daily_revenue[day] += o.get("total", 0)
+            daily_orders[day] += 1
+        for item in o.get("items", []):
+            cat = "Unknown"
+            prod = await db.products.find_one({"product_id": item.get("product_id")}, {"_id": 0, "category": 1})
+            if prod:
+                cat = prod.get("category", "Unknown")
+            category_revenue[cat] += item.get("price", 0) * item.get("quantity", 1)
+            pid = item.get("product_id", "")
+            product_sales[pid]["name"] = item.get("name", "")
+            product_sales[pid]["quantity"] += item.get("quantity", 0)
+            product_sales[pid]["revenue"] += item.get("price", 0) * item.get("quantity", 1)
+    all_orders_all = await db.orders.find({}, {"_id": 0, "status": 1}).to_list(10000)
+    for o in all_orders_all:
+        status_counts[o.get("status", "unknown")] += 1
+    days = []
+    for i in range(29, -1, -1):
+        d = (now - timedelta(days=i)).strftime("%Y-%m-%d")
+        days.append({"date": d, "revenue": round(daily_revenue.get(d, 0), 2), "orders": daily_orders.get(d, 0)})
+    top_products = sorted(product_sales.values(), key=lambda x: x["revenue"], reverse=True)[:10]
+    return {
+        "daily": days,
+        "category_revenue": [{"category": k, "revenue": round(v, 2)} for k, v in category_revenue.items()],
+        "status_breakdown": [{"status": k, "count": v} for k, v in status_counts.items()],
+        "top_products": top_products
     }
 
 @api_router.get("/admin/orders")
@@ -606,6 +822,10 @@ async def admin_create_product(product: ProductCreate, request: Request):
     doc["avg_rating"] = 0
     doc["review_count"] = 0
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    if doc.get("variants"):
+        for v in doc["variants"]:
+            if not v.get("variant_id"):
+                v["variant_id"] = f"var_{uuid.uuid4().hex[:8]}"
     await db.products.insert_one(doc)
     return await db.products.find_one({"product_id": doc["product_id"]}, {"_id": 0})
 
@@ -613,6 +833,10 @@ async def admin_create_product(product: ProductCreate, request: Request):
 async def admin_update_product(product_id: str, update: ProductUpdate, request: Request):
     await require_admin(request)
     update_data = {k: v for k, v in update.model_dump().items() if v is not None}
+    if "variants" in update_data and update_data["variants"]:
+        for v in update_data["variants"]:
+            if not v.get("variant_id"):
+                v["variant_id"] = f"var_{uuid.uuid4().hex[:8]}"
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
     result = await db.products.update_one({"product_id": product_id}, {"$set": update_data})
@@ -652,34 +876,71 @@ async def admin_export_orders(request: Request):
     orders = await db.orders.find({}, {"_id": 0}).sort("created_at", -1).to_list(10000)
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Order ID", "Customer Name", "Customer Email", "Items", "Total (INR)", "Status", "Tracking Number", "Payment Method", "Date"])
+    writer.writerow(["Order ID", "Customer Name", "Customer Email", "Items", "Total (INR)", "Discount", "Coupon", "Status", "Tracking Number", "Payment Method", "Date"])
     for o in orders:
         user = await db.users.find_one({"user_id": o.get("user_id")}, {"_id": 0})
         items_str = "; ".join([f"{i['name']} x{i['quantity']}" for i in o.get("items", [])])
         writer.writerow([
             o.get("order_id", ""), user.get("name", "") if user else o.get("customer_name", ""),
             user.get("email", "") if user else o.get("customer_email", ""), items_str,
-            o.get("total", 0), o.get("status", ""), o.get("tracking_number", ""),
+            o.get("total", 0), o.get("discount", 0), o.get("coupon_code", ""),
+            o.get("status", ""), o.get("tracking_number", ""),
             o.get("payment_method", ""), o.get("created_at", "")
         ])
     output.seek(0)
     return StreamingResponse(io.BytesIO(output.getvalue().encode()), media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename=orders_{datetime.now().strftime('%Y%m%d')}.csv"})
 
-# ── Admin Settings (Key Management GUI) ──
+# ── Admin User Management (RBAC) ──
+@api_router.get("/admin/users")
+async def admin_get_users(request: Request):
+    await require_owner(request)
+    users = await db.admin_users.find({}, {"_id": 0, "password_hash": 0}).sort("created_at", -1).to_list(100)
+    return users
+
+@api_router.post("/admin/users", status_code=201)
+async def admin_create_user(user_data: AdminUserCreate, request: Request):
+    await require_owner(request)
+    existing = await db.admin_users.find_one({"email": user_data.email.lower().strip()}, {"_id": 0})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already exists")
+    if user_data.role not in ["owner", "warehouse_manager"]:
+        raise HTTPException(status_code=400, detail="Role must be 'owner' or 'warehouse_manager'")
+    doc = {
+        "admin_user_id": f"adm_{uuid.uuid4().hex[:12]}",
+        "email": user_data.email.lower().strip(),
+        "name": user_data.name,
+        "password_hash": hash_password(user_data.password),
+        "role": user_data.role,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.admin_users.insert_one(doc)
+    return {"admin_user_id": doc["admin_user_id"], "email": doc["email"], "name": doc["name"], "role": doc["role"]}
+
+@api_router.delete("/admin/users/{admin_user_id}")
+async def admin_delete_user(admin_user_id: str, request: Request):
+    await require_owner(request)
+    result = await db.admin_users.delete_one({"admin_user_id": admin_user_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Admin user not found")
+    return {"message": "Admin user deleted"}
+
+# ── Admin Settings (Key Management + WhatsApp) ──
 @api_router.get("/admin/settings")
 async def admin_get_settings(request: Request):
     await require_admin(request)
+    extra = await db.admin_settings.find_one({"setting_id": "global"}, {"_id": 0})
     return {
         "razorpay_key_id": RAZORPAY_KEY_ID,
         "razorpay_key_secret_masked": RAZORPAY_KEY_SECRET[:8] + "..." if len(RAZORPAY_KEY_SECRET) > 8 else "***",
         "demo_mode": is_demo_mode(),
         "payment_fee_percent": PAYMENT_FEE_PERCENT,
+        "whatsapp_number": extra.get("whatsapp_number", "") if extra else "",
     }
 
 @api_router.put("/admin/settings")
 async def admin_update_settings(req: SettingsUpdateRequest, request: Request):
-    await require_admin(request)
+    await require_owner(request)
     global RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, ADMIN_PASSWORD
     updated = []
     env_path = ROOT_DIR / '.env'
@@ -700,7 +961,20 @@ async def admin_update_settings(req: SettingsUpdateRequest, request: Request):
         env_content = env_content.replace(f"ADMIN_PASSWORD={old_val}", f"ADMIN_PASSWORD={req.admin_password}")
         updated.append("admin_password")
     env_path.write_text(env_content)
+    if req.whatsapp_number is not None:
+        await db.admin_settings.update_one(
+            {"setting_id": "global"},
+            {"$set": {"whatsapp_number": req.whatsapp_number, "updated_at": datetime.now(timezone.utc).isoformat()}},
+            upsert=True
+        )
+        updated.append("whatsapp_number")
     return {"message": f"Updated: {', '.join(updated)}", "demo_mode": is_demo_mode()}
+
+@api_router.get("/admin/whatsapp-config")
+async def get_whatsapp_config():
+    extra = await db.admin_settings.find_one({"setting_id": "global"}, {"_id": 0})
+    number = extra.get("whatsapp_number", "") if extra else ""
+    return {"whatsapp_number": number, "enabled": bool(number)}
 
 # ── Seed Data ──
 @api_router.post("/seed")
@@ -709,13 +983,13 @@ async def seed_products():
     if existing > 0:
         await db.products.delete_many({})
     products = [
-        {"product_id": "prod_tg001", "name": "Diamond Shield 9H Tempered Glass", "description": "Premium 9H hardness tempered glass with oleophobic coating. Anti-fingerprint, bubble-free installation. Edge-to-edge protection.", "price": 499.0, "cost_price": 120.0, "compare_at_price": 999.0, "category": "Tempered Glass", "image": "https://images.unsplash.com/photo-1585060544812-6b45742d762f?w=600", "stock": 200, "featured": True, "bin_location": "Shelf A, Bin 1", "avg_rating": 4.5, "review_count": 45},
+        {"product_id": "prod_tg001", "name": "Diamond Shield 9H Tempered Glass", "description": "Premium 9H hardness tempered glass with oleophobic coating. Anti-fingerprint, bubble-free installation. Edge-to-edge protection.", "price": 499.0, "cost_price": 120.0, "compare_at_price": 999.0, "category": "Tempered Glass", "image": "https://images.unsplash.com/photo-1585060544812-6b45742d762f?w=600", "stock": 200, "featured": True, "bin_location": "Shelf A, Bin 1", "avg_rating": 4.5, "review_count": 45, "variants": [{"variant_id": "var_tg001_clr", "type": "Finish", "value": "Clear", "price_modifier": 0, "stock": 100}, {"variant_id": "var_tg001_mat", "type": "Finish", "value": "Matte", "price_modifier": 50, "stock": 100}]},
         {"product_id": "prod_tg002", "name": "Privacy Guard Anti-Spy Glass", "description": "Anti-spy tempered glass visible only from front. 28-degree privacy filter. Full edge coverage with alignment frame.", "price": 699.0, "cost_price": 180.0, "compare_at_price": 1299.0, "category": "Tempered Glass", "image": "https://images.unsplash.com/photo-1530319067432-f2a729c03db5?w=600", "stock": 80, "featured": True, "bin_location": "Shelf A, Bin 2", "avg_rating": 4.2, "review_count": 22},
         {"product_id": "prod_tg003", "name": "Matte Finish Gaming Glass", "description": "Anti-glare matte tempered glass for gamers. Smooth touch, reduced fingerprints. Compatible with all popular models.", "price": 549.0, "cost_price": 140.0, "compare_at_price": 999.0, "category": "Tempered Glass", "image": "https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=600", "stock": 150, "featured": False, "bin_location": "Shelf A, Bin 3", "avg_rating": 4.3, "review_count": 18},
-        {"product_id": "prod_cs001", "name": "Tough Armor Hybrid Case", "description": "Military-grade dual-layer protection with carbon fiber texture. Raised bezels for camera and screen. Air cushion corners.", "price": 799.0, "cost_price": 200.0, "compare_at_price": 1499.0, "category": "Cases", "image": "https://images.unsplash.com/photo-1618393649915-df0a256fdd30?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1NzZ8MHwxfHNlYXJjaHwxfHxpcGhvbmUlMjBjYXNlJTIwZGFya3xlbnwwfHx8fDE3NzQ4MjM1NTl8MA&ixlib=rb-4.1.0&q=85", "stock": 120, "featured": True, "bin_location": "Shelf B, Bin 1", "avg_rating": 4.7, "review_count": 67},
-        {"product_id": "prod_cs002", "name": "Ultra Thin Matte Case", "description": "0.3mm ultra-slim design with anti-fingerprint matte coating. Precision cutouts. Featherweight protection.", "price": 499.0, "cost_price": 100.0, "compare_at_price": 899.0, "category": "Cases", "image": "https://images.pexels.com/photos/18423755/pexels-photo-18423755.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940", "stock": 180, "featured": True, "bin_location": "Shelf B, Bin 2", "avg_rating": 4.4, "review_count": 38},
+        {"product_id": "prod_cs001", "name": "Tough Armor Hybrid Case", "description": "Military-grade dual-layer protection with carbon fiber texture. Raised bezels for camera and screen. Air cushion corners.", "price": 799.0, "cost_price": 200.0, "compare_at_price": 1499.0, "category": "Cases", "image": "https://images.unsplash.com/photo-1618393649915-df0a256fdd30?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1NzZ8MHwxfHNlYXJjaHwxfHxpcGhvbmUlMjBjYXNlJTIwZGFya3xlbnwwfHx8fDE3NzQ4MjM1NTl8MA&ixlib=rb-4.1.0&q=85", "stock": 120, "featured": True, "bin_location": "Shelf B, Bin 1", "avg_rating": 4.7, "review_count": 67, "variants": [{"variant_id": "var_cs001_blk", "type": "Color", "value": "Black", "price_modifier": 0, "stock": 60}, {"variant_id": "var_cs001_nav", "type": "Color", "value": "Navy Blue", "price_modifier": 0, "stock": 30}, {"variant_id": "var_cs001_red", "type": "Color", "value": "Crimson Red", "price_modifier": 100, "stock": 30}]},
+        {"product_id": "prod_cs002", "name": "Ultra Thin Matte Case", "description": "0.3mm ultra-slim design with anti-fingerprint matte coating. Precision cutouts. Featherweight protection.", "price": 499.0, "cost_price": 100.0, "compare_at_price": 899.0, "category": "Cases", "image": "https://images.pexels.com/photos/18423755/pexels-photo-18423755.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940", "stock": 180, "featured": True, "bin_location": "Shelf B, Bin 2", "avg_rating": 4.4, "review_count": 38, "variants": [{"variant_id": "var_cs002_blk", "type": "Color", "value": "Midnight Black", "price_modifier": 0, "stock": 90}, {"variant_id": "var_cs002_gry", "type": "Color", "value": "Gunmetal Grey", "price_modifier": 0, "stock": 90}]},
         {"product_id": "prod_cs003", "name": "Crystal Clear Pro Case", "description": "Anti-yellowing transparent case with reinforced corners. Shows original phone design. UV-resistant material.", "price": 599.0, "cost_price": 130.0, "compare_at_price": 1099.0, "category": "Cases", "image": "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=600", "stock": 95, "featured": False, "bin_location": "Shelf B, Bin 3", "avg_rating": 4.3, "review_count": 29},
-        {"product_id": "prod_cs004", "name": "Leather Executive Wallet Case", "description": "Premium PU leather with card slots and kickstand. Magnetic closure. Business-class protection.", "price": 1299.0, "cost_price": 350.0, "compare_at_price": 2499.0, "category": "Cases", "image": "https://images.unsplash.com/photo-1601593346740-925612772716?w=600", "stock": 3, "featured": True, "bin_location": "Shelf B, Bin 4", "avg_rating": 4.6, "review_count": 15},
+        {"product_id": "prod_cs004", "name": "Leather Executive Wallet Case", "description": "Premium PU leather with card slots and kickstand. Magnetic closure. Business-class protection.", "price": 1299.0, "cost_price": 350.0, "compare_at_price": 2499.0, "category": "Cases", "image": "https://images.unsplash.com/photo-1601593346740-925612772716?w=600", "stock": 3, "featured": True, "bin_location": "Shelf B, Bin 4", "avg_rating": 4.6, "review_count": 15, "variants": [{"variant_id": "var_cs004_brn", "type": "Color", "value": "Brown", "price_modifier": 0, "stock": 2}, {"variant_id": "var_cs004_blk", "type": "Color", "value": "Black", "price_modifier": 0, "stock": 1}]},
         {"product_id": "prod_hd001", "name": "Magnetic Car Mount Pro", "description": "360-degree rotation with N52 neodymium magnets. Dashboard and vent clip included. One-hand operation.", "price": 699.0, "cost_price": 180.0, "compare_at_price": 1299.0, "category": "Holders", "image": "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=600", "stock": 60, "featured": True, "bin_location": "Shelf C, Bin 1", "avg_rating": 4.5, "review_count": 33},
         {"product_id": "prod_hd002", "name": "Foldable Desk Stand", "description": "Aluminum alloy adjustable stand. Compatible with all phones and tablets. Anti-slip silicone pads.", "price": 599.0, "cost_price": 150.0, "compare_at_price": 999.0, "category": "Holders", "image": "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=600", "stock": 45, "featured": False, "bin_location": "Shelf C, Bin 2", "avg_rating": 4.4, "review_count": 19},
         {"product_id": "prod_hd003", "name": "Ring Holder Kickstand", "description": "360-degree rotating ring with magnetic car mount compatibility. Ultra-thin 3M adhesive base.", "price": 299.0, "cost_price": 60.0, "compare_at_price": 599.0, "category": "Holders", "image": "https://images.unsplash.com/photo-1512054502232-10a0a035d672?w=600", "stock": 18, "featured": False, "bin_location": "Shelf C, Bin 3", "avg_rating": 4.1, "review_count": 12},
@@ -729,6 +1003,40 @@ async def seed_products():
         p["created_at"] = datetime.now(timezone.utc).isoformat()
     await db.products.insert_many(products)
     return {"message": f"Seeded {len(products)} products"}
+
+# ── Startup: Seed Admin Users ──
+@app.on_event("startup")
+async def seed_admin_users():
+    existing = await db.admin_users.count_documents({})
+    if existing == 0:
+        owner = {
+            "admin_user_id": "adm_owner_001",
+            "email": "owner@snapalign.com",
+            "name": "Owner Admin",
+            "password_hash": hash_password("snapalign2026"),
+            "role": "owner",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        wh_manager = {
+            "admin_user_id": "adm_wh_001",
+            "email": "warehouse@snapalign.com",
+            "name": "Warehouse Manager",
+            "password_hash": hash_password("warehouse2026"),
+            "role": "warehouse_manager",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.admin_users.insert_many([owner, wh_manager])
+        logger.info("Seeded default admin users: owner@snapalign.com / warehouse@snapalign.com")
+    # Seed sample coupons if none exist
+    coupon_count = await db.coupons.count_documents({})
+    if coupon_count == 0:
+        sample_coupons = [
+            {"coupon_id": "cpn_welcome10", "code": "WELCOME10", "type": "percentage", "value": 10, "min_order_amount": 500, "max_uses": 100, "used_count": 0, "active": True, "expires_at": (datetime.now(timezone.utc) + timedelta(days=90)).isoformat(), "created_at": datetime.now(timezone.utc).isoformat()},
+            {"coupon_id": "cpn_flat100", "code": "FLAT100", "type": "fixed", "value": 100, "min_order_amount": 999, "max_uses": 50, "used_count": 0, "active": True, "expires_at": (datetime.now(timezone.utc) + timedelta(days=60)).isoformat(), "created_at": datetime.now(timezone.utc).isoformat()},
+            {"coupon_id": "cpn_snap20", "code": "SNAP20", "type": "percentage", "value": 20, "min_order_amount": 1500, "max_uses": 0, "used_count": 0, "active": True, "created_at": datetime.now(timezone.utc).isoformat()},
+        ]
+        await db.coupons.insert_many(sample_coupons)
+        logger.info("Seeded 3 sample coupons")
 
 # ── Include Router & Middleware ──
 app.include_router(api_router)
