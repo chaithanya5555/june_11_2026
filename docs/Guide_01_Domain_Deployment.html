@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide 1: Domain & Deployment - SnapAlign</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        .page {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            padding: 40px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2em; margin-bottom: 10px; }
+        .header .subtitle { opacity: 0.9; font-size: 1.1em; }
+        .header .badge {
+            display: inline-block;
+            background: #007AFF;
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+        .section {
+            margin: 30px 0;
+            padding: 25px;
+            background: #f8f9ff;
+            border-radius: 15px;
+            border-left: 5px solid #007AFF;
+        }
+        .section-title {
+            font-size: 1.4em;
+            color: #1a1a2e;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .step-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+            border: 1px solid #e8e8e8;
+        }
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #007AFF, #5856D6);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        .step-title { font-weight: bold; font-size: 1.1em; }
+        .visual-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .visual-flow {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        .flow-item {
+            background: rgba(255,255,255,0.2);
+            padding: 15px 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .flow-item .icon { font-size: 2.5em; }
+        .flow-item .label { margin-top: 8px; font-weight: bold; }
+        .flow-arrow { font-size: 2em; }
+        .url-box {
+            background: #1a1a2e;
+            color: #0f0;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+        .warning-box {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .success-box {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .info-box {
+            background: #e7f3ff;
+            border: 2px solid #007AFF;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background: #1a1a2e;
+            color: white;
+        }
+        tr:hover { background: #f8f9ff; }
+        code {
+            background: #e8e8e8;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        .screenshot-placeholder {
+            background: linear-gradient(135deg, #f5f7fa, #e4e8eb);
+            border: 3px dashed #ccc;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .screenshot-placeholder .icon { font-size: 4em; margin-bottom: 15px; }
+        .screenshot-placeholder .text { color: #666; font-style: italic; }
+        .page-break { page-break-before: always; margin-top: 40px; }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            border-top: 1px solid #eee;
+            margin-top: 40px;
+        }
+        @media print {
+            .page { box-shadow: none; }
+            .page-break { page-break-before: always; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- COVER -->
+        <div class="header">
+            <h1>📘 Guide 1: Domain & Deployment</h1>
+            <p class="subtitle">Netlify to Vercel Migration for snapalign.in</p>
+            <span class="badge">SnapAlign Technical Documentation</span>
+        </div>
+
+        <!-- OVERVIEW -->
+        <div class="visual-box">
+            <h2>🎯 What We're Doing</h2>
+            <p style="margin: 15px 0;">Moving your website from Netlify to Vercel + Render</p>
+            <div class="visual-flow">
+                <div class="flow-item">
+                    <div class="icon">🔴</div>
+                    <div class="label">Netlify</div>
+                    <div style="font-size: 0.8em; opacity: 0.8;">Current</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-item">
+                    <div class="icon">▲</div>
+                    <div class="label">Vercel</div>
+                    <div style="font-size: 0.8em; opacity: 0.8;">Frontend</div>
+                </div>
+                <div class="flow-arrow">+</div>
+                <div class="flow-item">
+                    <div class="icon">🟣</div>
+                    <div class="label">Render</div>
+                    <div style="font-size: 0.8em; opacity: 0.8;">Backend</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>🧒 Simple Explanation:</strong> Think of it like moving your shop to a new building! 
+            Netlify was the old building, now we're moving to two new buildings - 
+            Vercel (the store front people see) and Render (the warehouse behind).
+        </div>
+
+        <!-- ARCHITECTURE -->
+        <div class="section">
+            <div class="section-title">🏗️ New Architecture</div>
+            
+            <table>
+                <tr>
+                    <th>Component</th>
+                    <th>Platform</th>
+                    <th>URL</th>
+                </tr>
+                <tr>
+                    <td>🎨 Frontend (What users see)</td>
+                    <td>Vercel</td>
+                    <td><code>snapalign.in</code></td>
+                </tr>
+                <tr>
+                    <td>⚙️ Backend API (Brain)</td>
+                    <td>Render</td>
+                    <td><code>snapalign-api.onrender.com</code></td>
+                </tr>
+                <tr>
+                    <td>🗄️ Database (Memory)</td>
+                    <td>MongoDB Atlas</td>
+                    <td><code>cluster0.mongodb.net</code></td>
+                </tr>
+            </table>
+
+            <div class="screenshot-placeholder">
+                <div class="icon">🖼️</div>
+                <div class="text">Architecture Diagram: User → Vercel → Render → MongoDB</div>
+            </div>
+        </div>
+
+        <!-- STEP 1: VERCEL SETUP -->
+        <div class="section page-break">
+            <div class="section-title">📦 Part A: Deploy Frontend to Vercel</div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Go to Vercel Website</div>
+                </div>
+                <p>Open your browser and type:</p>
+                <div class="url-box">https://vercel.com</div>
+                
+                <div class="screenshot-placeholder">
+                    <div class="icon">🖥️</div>
+                    <div class="text">Screenshot: Vercel Homepage with "Start Deploying" button</div>
+                </div>
+                
+                <div class="info-box">
+                    🧒 <strong>Like this:</strong> Open Google Chrome → Type vercel.com → Press Enter
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Sign Up with GitHub</div>
+                </div>
+                <ul>
+                    <li>👆 Click the big button <strong>"Start Deploying"</strong></li>
+                    <li>👆 Click <strong>"Continue with GitHub"</strong></li>
+                    <li>✅ Allow Vercel to access your GitHub</li>
+                </ul>
+                
+                <div class="screenshot-placeholder">
+                    <div class="icon">🔐</div>
+                    <div class="text">Screenshot: GitHub authorization popup</div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <div class="step-title">Import Your Project</div>
+                </div>
+                <ul>
+                    <li>👆 Click <strong>"Add New..."</strong> → <strong>"Project"</strong></li>
+                    <li>🔍 Find <strong>snapalign</strong> in the list</li>
+                    <li>👆 Click <strong>"Import"</strong></li>
+                </ul>
+                
+                <div class="screenshot-placeholder">
+                    <div class="icon">📂</div>
+                    <div class="text">Screenshot: Import Git Repository screen</div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">4</div>
+                    <div class="step-title">Configure Build Settings</div>
+                </div>
+                
+                <table>
+                    <tr><th>Setting</th><th>Value</th></tr>
+                    <tr><td>Framework Preset</td><td><code>Create React App</code></td></tr>
+                    <tr><td>Root Directory</td><td><code>frontend</code> (Click Edit to change)</td></tr>
+                    <tr><td>Build Command</td><td><code>yarn build</code></td></tr>
+                    <tr><td>Output Directory</td><td><code>build</code></td></tr>
+                </table>
+                
+                <div class="screenshot-placeholder">
+                    <div class="icon">⚙️</div>
+                    <div class="text">Screenshot: Configure Project settings panel</div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">5</div>
+                    <div class="step-title">Add Environment Variable</div>
+                </div>
+                <p>Expand <strong>"Environment Variables"</strong> section and add:</p>
+                
+                <table>
+                    <tr><th>Name</th><th>Value</th></tr>
+                    <tr>
+                        <td><code>REACT_APP_BACKEND_URL</code></td>
+                        <td><code>https://snapalign-backend.onrender.com</code></td>
+                    </tr>
+                </table>
+                
+                <div class="warning-box">
+                    ⚠️ <strong>Important:</strong> This tells your website where the brain (backend) is!
+                </div>
+                
+                <div class="screenshot-placeholder">
+                    <div class="icon">🔑</div>
+                    <div class="text">Screenshot: Environment Variables input fields</div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">6</div>
+                    <div class="step-title">Deploy!</div>
+                </div>
+                <ul>
+                    <li>👆 Click <strong>"Deploy"</strong></li>
+                    <li>⏳ Wait 2-3 minutes</li>
+                    <li>🎉 See confetti when done!</li>
+                </ul>
+                
+                <div class="success-box">
+                    ✅ Your frontend is now live at: <code>https://snapalign.vercel.app</code>
+                </div>
+                
+                <div class="screenshot-placeholder">
+                    <div class="icon">🎉</div>
+                    <div class="text">Screenshot: Deployment Success with confetti</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 2: RENDER SETUP -->
+        <div class="section page-break">
+            <div class="section-title">🖥️ Part B: Deploy Backend to Render</div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Go to Render Website</div>
+                </div>
+                <div class="url-box">https://render.com</div>
+                <p>Click <strong>"Get Started for Free"</strong></p>
+                
+                <div class="screenshot-placeholder">
+                    <div class="icon">🖥️</div>
+                    <div class="text">Screenshot: Render Homepage</div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Create Web Service</div>
+                </div>
+                <ul>
+                    <li>👆 Click <strong>"New +"</strong> (top right corner)</li>
+                    <li>👆 Select <strong>"Web Service"</strong></li>
+                    <li>👆 Connect your GitHub account</li>
+                    <li>🔍 Find and select <strong>snapalign</strong> repository</li>
+                </ul>
+                
+                <div class="screenshot-placeholder">
+                    <div class="icon">➕</div>
+                    <div class="text">Screenshot: New Web Service creation</div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <div class="step-title">Configure Backend Settings</div>
+                </div>
+                
+                <table>
+                    <tr><th>Setting</th><th>What to Type</th></tr>
+                    <tr><td>Name</td><td><code>snapalign-backend</code></td></tr>
+                    <tr><td>Region</td><td><code>Singapore (Southeast Asia)</code></td></tr>
+                    <tr><td>Branch</td><td><code>main</code></td></tr>
+                    <tr><td>Root Directory</td><td><code>backend</code></td></tr>
+                    <tr><td>Runtime</td><td><code>Python 3</code></td></tr>
+                    <tr><td>Build Command</td><td><code>pip install -r requirements.txt</code></td></tr>
+                    <tr><td>Start Command</td><td><code>uvicorn server:app --host 0.0.0.0 --port $PORT</code></td></tr>
+                    <tr><td>Instance Type</td><td><code>Free</code></td></tr>
+                </table>
+                
+                <div class="screenshot-placeholder">
+                    <div class="icon">📝</div>
+                    <div class="text">Screenshot: Render service configuration form</div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">4</div>
+                    <div class="step-title">Add Environment Variables</div>
+                </div>
+                <p>Click <strong>"Advanced"</strong> → <strong>"Add Environment Variable"</strong></p>
+                
+                <table>
+                    <tr><th>Key</th><th>Value</th></tr>
+                    <tr><td><code>MONGO_URL</code></td><td>Your MongoDB Atlas connection string</td></tr>
+                    <tr><td><code>DB_NAME</code></td><td><code>snapalign</code></td></tr>
+                    <tr><td><code>CORS_ORIGINS</code></td><td><code>*</code></td></tr>
+                    <tr><td><code>ADMIN_PASSWORD</code></td><td><code>snapalign2026</code></td></tr>
+                    <tr><td><code>RAZORPAY_KEY_ID</code></td><td>Your Razorpay Key ID</td></tr>
+                    <tr><td><code>RAZORPAY_KEY_SECRET</code></td><td>Your Razorpay Secret</td></tr>
+                </table>
+                
+                <div class="screenshot-placeholder">
+                    <div class="icon">🔐</div>
+                    <div class="text">Screenshot: Environment variables panel in Render</div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">5</div>
+                    <div class="step-title">Deploy & Wait</div>
+                </div>
+                <ul>
+                    <li>👆 Click <strong>"Create Web Service"</strong></li>
+                    <li>⏳ Wait 5-10 minutes for first deploy</li>
+                    <li>✅ Look for green <strong>"Live"</strong> badge</li>
+                </ul>
+                
+                <div class="success-box">
+                    ✅ Backend URL: <code>https://snapalign-backend.onrender.com</code><br>
+                    ✅ Test it: <code>https://snapalign-backend.onrender.com/api/health</code>
+                </div>
+            </div>
+        </div>
+
+        <!-- DOMAIN CONNECTION -->
+        <div class="section page-break">
+            <div class="section-title">🔗 Part C: Connect snapalign.in Domain</div>
+            
+            <div class="visual-box">
+                <div class="visual-flow">
+                    <div class="flow-item">
+                        <div class="icon">🌐</div>
+                        <div class="label">snapalign.in</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-item">
+                        <div class="icon">📡</div>
+                        <div class="label">DNS</div>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-item">
+                        <div class="icon">▲</div>
+                        <div class="label">Vercel</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Add Domain in Vercel</div>
+                </div>
+                <ul>
+                    <li>Go to your Vercel project dashboard</li>
+                    <li>👆 Click <strong>"Settings"</strong> tab</li>
+                    <li>👆 Click <strong>"Domains"</strong> in sidebar</li>
+                    <li>✍️ Type <code>snapalign.in</code></li>
+                    <li>👆 Click <strong>"Add"</strong></li>
+                </ul>
+                
+                <div class="screenshot-placeholder">
+                    <div class="icon">🌐</div>
+                    <div class="text">Screenshot: Vercel Domains settings page</div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Update DNS Records in Netlify</div>
+                </div>
+                <p>Go to Netlify → Domain settings → DNS:</p>
+                
+                <table>
+                    <tr><th>Type</th><th>Name</th><th>Value</th></tr>
+                    <tr><td>A</td><td>@</td><td><code>76.76.21.21</code></td></tr>
+                    <tr><td>CNAME</td><td>www</td><td><code>cname.vercel-dns.com</code></td></tr>
+                </table>
+                
+                <div class="warning-box">
+                    ⚠️ <strong>Delete Old Records:</strong> Remove any existing A or CNAME records first!
+                </div>
+                
+                <div class="screenshot-placeholder">
+                    <div class="icon">📝</div>
+                    <div class="text">Screenshot: Netlify DNS configuration panel</div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <div class="step-title">Wait for DNS Propagation</div>
+                </div>
+                <ul>
+                    <li>⏳ Takes 5 minutes to 24 hours</li>
+                    <li>🔍 Check progress at: <code>dnschecker.org</code></li>
+                    <li>✅ When all green, your domain is ready!</li>
+                </ul>
+                
+                <div class="success-box">
+                    🎉 <strong>Done!</strong> Your shop is live at <code>https://snapalign.in</code>
+                </div>
+            </div>
+        </div>
+
+        <!-- API LINKING -->
+        <div class="section page-break">
+            <div class="section-title">🔌 Part D: Linking Frontend to Backend API</div>
+            
+            <div class="info-box">
+                🧒 <strong>Simple Explanation:</strong> The frontend (Vercel) needs to know where to find the backend (Render). 
+                It's like giving your store the address of your warehouse!
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Verify Backend URL</div>
+                </div>
+                <p>Your Render backend URL format:</p>
+                <div class="url-box">https://snapalign-backend.onrender.com</div>
+                
+                <p>Test it works by visiting:</p>
+                <div class="url-box">https://snapalign-backend.onrender.com/api/health</div>
+                
+                <p>You should see:</p>
+                <div class="url-box">{"status": "healthy", "database": "connected"}</div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Update Vercel Environment Variable</div>
+                </div>
+                <ul>
+                    <li>Go to Vercel Dashboard</li>
+                    <li>👆 Click your project</li>
+                    <li>👆 Click <strong>"Settings"</strong> → <strong>"Environment Variables"</strong></li>
+                    <li>Find <code>REACT_APP_BACKEND_URL</code></li>
+                    <li>Update value to your Render URL</li>
+                    <li>👆 Click <strong>"Save"</strong></li>
+                </ul>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <div class="step-title">Redeploy Frontend</div>
+                </div>
+                <ul>
+                    <li>Go to <strong>"Deployments"</strong> tab</li>
+                    <li>👆 Click <strong>"..."</strong> on latest deployment</li>
+                    <li>👆 Click <strong>"Redeploy"</strong></li>
+                    <li>⏳ Wait 2 minutes</li>
+                </ul>
+                
+                <div class="success-box">
+                    ✅ Frontend is now connected to Backend!
+                </div>
+            </div>
+        </div>
+
+        <!-- VERIFICATION -->
+        <div class="section">
+            <div class="section-title">✅ Final Verification Checklist</div>
+            
+            <table>
+                <tr><th>Test</th><th>URL</th><th>Expected Result</th></tr>
+                <tr>
+                    <td>Homepage loads</td>
+                    <td><code>https://snapalign.in</code></td>
+                    <td>See product grid</td>
+                </tr>
+                <tr>
+                    <td>Backend health</td>
+                    <td><code>https://snapalign-backend.onrender.com/api/health</code></td>
+                    <td>{"status": "healthy"}</td>
+                </tr>
+                <tr>
+                    <td>Products load</td>
+                    <td><code>https://snapalign-backend.onrender.com/api/products</code></td>
+                    <td>JSON array of products</td>
+                </tr>
+                <tr>
+                    <td>Admin panel</td>
+                    <td><code>https://snapalign.in/admin</code></td>
+                    <td>Login page shows</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="footer">
+            <p>📘 SnapAlign Guide 1: Domain & Deployment</p>
+            <p>Version 1.0 | July 2025</p>
+        </div>
+    </div>
+</body>
+</html>

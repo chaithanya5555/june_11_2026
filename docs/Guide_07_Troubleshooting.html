@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide 7: Troubleshooting & File Map - SnapAlign</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #0f172a;
+            color: #e2e8f0;
+            line-height: 1.7;
+        }
+        .page {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #1e293b;
+            min-height: 100vh;
+            padding: 40px;
+        }
+        .header {
+            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+            color: white;
+            padding: 35px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2em; margin-bottom: 10px; }
+        .section {
+            margin: 30px 0;
+            padding: 25px;
+            background: #334155;
+            border-radius: 15px;
+            border-left: 5px solid #ef4444;
+        }
+        .section-title {
+            font-size: 1.4em;
+            color: #f87171;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .problem-card {
+            background: #1e293b;
+            border: 1px solid #475569;
+            border-radius: 12px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        .problem-header {
+            background: #7f1d1d;
+            color: white;
+            padding: 15px 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .problem-body {
+            padding: 20px;
+        }
+        .solution-step {
+            display: flex;
+            gap: 15px;
+            padding: 12px;
+            margin: 8px 0;
+            background: #334155;
+            border-radius: 8px;
+        }
+        .solution-num {
+            width: 28px;
+            height: 28px;
+            background: #22c55e;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .code-block {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 15px 20px;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            margin: 10px 0;
+            color: #a5f3fc;
+        }
+        .file-tree {
+            background: #0f172a;
+            border-radius: 12px;
+            padding: 20px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9em;
+        }
+        .file-tree .folder { color: #fbbf24; }
+        .file-tree .file { color: #a5f3fc; }
+        .file-tree .comment { color: #64748b; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #475569;
+        }
+        th { background: #dc2626; color: white; }
+        tr:hover { background: #334155; }
+        code {
+            background: #0f172a;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #a5f3fc;
+        }
+        .warning-box {
+            background: #422006;
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .success-box {
+            background: #14532d;
+            border: 2px solid #22c55e;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .info-box {
+            background: #1e3a5f;
+            border: 2px solid #3b82f6;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .error-message {
+            background: #450a0a;
+            border: 1px solid #dc2626;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: monospace;
+            color: #fca5a5;
+            margin: 10px 0;
+        }
+        .page-break { page-break-before: always; margin-top: 40px; }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #64748b;
+            border-top: 1px solid #334155;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- HEADER -->
+        <div class="header">
+            <h1>🔧 Guide 7: Troubleshooting & File Map</h1>
+            <p>Solutions for Common Issues + Complete Directory Structure</p>
+        </div>
+
+        <div class="info-box">
+            <strong>🧒 Simple Explanation:</strong> Things break sometimes! This guide helps you fix common problems 
+            and shows you where all the code files live. Think of it like a repair manual + treasure map! 🗺️
+        </div>
+
+        <!-- CORS ERRORS -->
+        <div class="section">
+            <div class="section-title">🚫 Problem 1: CORS Errors</div>
+            
+            <div class="error-message">
+                Access to XMLHttpRequest at 'https://api.snapalign.in' from origin 'https://snapalign.in' 
+                has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present.
+            </div>
+
+            <div class="problem-card">
+                <div class="problem-header">
+                    <span>🔴</span> What is CORS?
+                </div>
+                <div class="problem-body">
+                    <p>CORS = Cross-Origin Resource Sharing. It's a security feature that stops websites from talking to servers they shouldn't.</p>
+                    <p style="margin-top: 10px;"><strong>Think of it like:</strong> Your frontend (Vercel) trying to call your backend (Render), but the backend says "I don't know you!" 🚫</p>
+                </div>
+            </div>
+
+            <h4 style="margin-top: 20px; color: #22c55e;">✅ Solutions:</h4>
+
+            <div class="solution-step">
+                <div class="solution-num">1</div>
+                <div>
+                    <strong>Check Backend CORS Settings</strong>
+                    <p>Open <code>/app/backend/server.py</code> and find:</p>
+                    <div class="code-block">app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Should be "*" or your domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)</div>
+                </div>
+            </div>
+
+            <div class="solution-step">
+                <div class="solution-num">2</div>
+                <div>
+                    <strong>Check Render Environment Variable</strong>
+                    <p>Go to Render Dashboard → Environment → Check <code>CORS_ORIGINS</code></p>
+                    <div class="code-block">CORS_ORIGINS=*</div>
+                    <p>Or for specific domains:</p>
+                    <div class="code-block">CORS_ORIGINS=https://snapalign.in,https://www.snapalign.in</div>
+                </div>
+            </div>
+
+            <div class="solution-step">
+                <div class="solution-num">3</div>
+                <div>
+                    <strong>Restart Backend</strong>
+                    <p>After changing environment variables, click "Manual Deploy" in Render to restart.</p>
+                </div>
+            </div>
+
+            <div class="success-box">
+                ✅ <strong>Verified Working:</strong> If <code>CORS_ORIGINS=*</code> is set, any frontend can connect.
+            </div>
+        </div>
+
+        <!-- MONGODB WHITELIST -->
+        <div class="section page-break">
+            <div class="section-title">🔒 Problem 2: MongoDB Connection Failed</div>
+            
+            <div class="error-message">
+                pymongo.errors.ServerSelectionTimeoutError: connection closed, 
+                Timeout: 30s, Topology Description: ...
+            </div>
+
+            <div class="problem-card">
+                <div class="problem-header">
+                    <span>🔴</span> What's Happening?
+                </div>
+                <div class="problem-body">
+                    <p>MongoDB Atlas blocks connections from unknown IP addresses. Render's IP changes, so MongoDB doesn't recognize it.</p>
+                    <p style="margin-top: 10px;"><strong>Think of it like:</strong> A bouncer at a club who doesn't have your name on the list! 🚪</p>
+                </div>
+            </div>
+
+            <h4 style="margin-top: 20px; color: #22c55e;">✅ Solution: Whitelist All IPs</h4>
+
+            <div class="solution-step">
+                <div class="solution-num">1</div>
+                <div>
+                    <strong>Go to MongoDB Atlas</strong>
+                    <p>Login at <code>cloud.mongodb.com</code></p>
+                </div>
+            </div>
+
+            <div class="solution-step">
+                <div class="solution-num">2</div>
+                <div>
+                    <strong>Navigate to Network Access</strong>
+                    <p>Left sidebar → Security → Network Access</p>
+                </div>
+            </div>
+
+            <div class="solution-step">
+                <div class="solution-num">3</div>
+                <div>
+                    <strong>Add IP Address</strong>
+                    <p>Click "Add IP Address" → "Allow Access from Anywhere"</p>
+                    <div class="code-block">IP: 0.0.0.0/0
+Comment: Allow all (for Render)</div>
+                </div>
+            </div>
+
+            <div class="solution-step">
+                <div class="solution-num">4</div>
+                <div>
+                    <strong>Wait 1-2 Minutes</strong>
+                    <p>Changes take a moment to propagate.</p>
+                </div>
+            </div>
+
+            <div class="warning-box">
+                ⚠️ <strong>Security Note:</strong> Allowing all IPs is less secure but necessary for services like Render with dynamic IPs. 
+                Your database is still protected by username/password!
+            </div>
+        </div>
+
+        <!-- CONNECTION STRING -->
+        <div class="section">
+            <div class="section-title">🔗 Problem 3: Invalid Connection String</div>
+            
+            <div class="error-message">
+                pymongo.errors.ConfigurationError: Invalid URI host: password contains unescaped characters
+            </div>
+
+            <div class="problem-card">
+                <div class="problem-header">
+                    <span>🔴</span> What's Happening?
+                </div>
+                <div class="problem-body">
+                    <p>Your MongoDB password has special characters (like @, #, %) that need to be "escaped" (converted to safe codes).</p>
+                </div>
+            </div>
+
+            <h4 style="margin-top: 20px; color: #22c55e;">✅ Solution: URL-Encode Special Characters</h4>
+
+            <table>
+                <tr>
+                    <th>Character</th>
+                    <th>Replace With</th>
+                </tr>
+                <tr><td>@</td><td><code>%40</code></td></tr>
+                <tr><td>#</td><td><code>%23</code></td></tr>
+                <tr><td>$</td><td><code>%24</code></td></tr>
+                <tr><td>%</td><td><code>%25</code></td></tr>
+                <tr><td>&</td><td><code>%26</code></td></tr>
+                <tr><td>+</td><td><code>%2B</code></td></tr>
+                <tr><td>/</td><td><code>%2F</code></td></tr>
+            </table>
+
+            <p style="margin-top: 15px;"><strong>Example:</strong></p>
+            <div class="code-block"># Password: My@Pass#123
+# Encoded:  My%40Pass%23123
+
+# Full connection string:
+mongodb+srv://user:My%40Pass%23123@cluster.mongodb.net/snapalign</div>
+
+            <div class="info-box">
+                💡 <strong>Pro Tip:</strong> Use a simple password without special characters to avoid this issue!
+            </div>
+        </div>
+
+        <!-- RENDER SLEEPING -->
+        <div class="section page-break">
+            <div class="section-title">😴 Problem 4: Backend is Sleeping (Slow First Request)</div>
+            
+            <div class="problem-card">
+                <div class="problem-header">
+                    <span>🔴</span> Symptoms
+                </div>
+                <div class="problem-body">
+                    <ul>
+                        <li>First page load takes 30+ seconds</li>
+                        <li>Subsequent requests are fast</li>
+                        <li>Happens after ~15 minutes of no activity</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h4 style="margin-top: 20px; color: #22c55e;">✅ Solutions:</h4>
+
+            <div class="solution-step">
+                <div class="solution-num">1</div>
+                <div>
+                    <strong>Option A: Upgrade to Paid Plan ($7/month)</strong>
+                    <p>Render Starter plan keeps your service always running.</p>
+                </div>
+            </div>
+
+            <div class="solution-step">
+                <div class="solution-num">2</div>
+                <div>
+                    <strong>Option B: Use UptimeRobot (Free)</strong>
+                    <p>Set up a free ping service to keep your backend awake:</p>
+                    <ol style="margin-top: 10px;">
+                        <li>Go to <code>uptimerobot.com</code></li>
+                        <li>Create free account</li>
+                        <li>Add new monitor: HTTP(s)</li>
+                        <li>URL: <code>https://snapalign-backend.onrender.com/api/health</code></li>
+                        <li>Interval: 5 minutes</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="success-box">
+                ✅ UptimeRobot will ping your backend every 5 minutes, keeping it awake!
+            </div>
+        </div>
+
+        <!-- ENVIRONMENT VARIABLES -->
+        <div class="section">
+            <div class="section-title">🔑 Problem 5: Environment Variables Not Working</div>
+            
+            <div class="error-message">
+                KeyError: 'MONGO_URL' / os.environ['MONGO_URL']
+            </div>
+
+            <h4 style="margin-top: 20px; color: #22c55e;">✅ Checklist:</h4>
+
+            <table>
+                <tr>
+                    <th>Platform</th>
+                    <th>Where to Set Variables</th>
+                </tr>
+                <tr>
+                    <td>Vercel (Frontend)</td>
+                    <td>Settings → Environment Variables</td>
+                </tr>
+                <tr>
+                    <td>Render (Backend)</td>
+                    <td>Dashboard → Environment</td>
+                </tr>
+                <tr>
+                    <td>Local Development</td>
+                    <td><code>/app/backend/.env</code> file</td>
+                </tr>
+            </table>
+
+            <div class="warning-box">
+                ⚠️ <strong>Remember:</strong> After changing environment variables:
+                <ul style="margin-top: 10px;">
+                    <li>Vercel: Redeploy the project</li>
+                    <li>Render: It auto-redeploys, but you can trigger manually</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- FILE MAP -->
+        <div class="section page-break">
+            <div class="section-title">📁 Complete File Directory Map</div>
+
+            <div class="file-tree">
+<span class="folder">📁 /app</span>
+├── <span class="folder">📁 backend/</span>                    <span class="comment"># FastAPI Backend Server</span>
+│   ├── <span class="file">server.py</span>                  <span class="comment"># Main API routes & logic</span>
+│   ├── <span class="file">.env</span>                       <span class="comment"># Environment variables (local)</span>
+│   ├── <span class="file">requirements.txt</span>           <span class="comment"># Python dependencies</span>
+│   └── <span class="folder">📁 tests/</span>                 <span class="comment"># Backend tests</span>
+│
+├── <span class="folder">📁 frontend/</span>                   <span class="comment"># React Frontend App</span>
+│   ├── <span class="folder">📁 src/</span>                   <span class="comment"># Source code</span>
+│   │   ├── <span class="folder">📁 components/</span>        <span class="comment"># Reusable UI components</span>
+│   │   │   └── <span class="folder">📁 ui/</span>            <span class="comment"># Shadcn UI components</span>
+│   │   ├── <span class="folder">📁 contexts/</span>          <span class="comment"># React contexts (Auth, Cart)</span>
+│   │   │   ├── <span class="file">AuthContext.js</span>     <span class="comment"># User authentication</span>
+│   │   │   └── <span class="file">CartContext.js</span>     <span class="comment"># Shopping cart state</span>
+│   │   ├── <span class="folder">📁 pages/</span>             <span class="comment"># Page components</span>
+│   │   │   ├── <span class="file">Home.js</span>            <span class="comment"># Homepage with products</span>
+│   │   │   ├── <span class="file">Checkout.js</span>        <span class="comment"># Payment page</span>
+│   │   │   ├── <span class="file">Admin.js</span>           <span class="comment"># Admin dashboard</span>
+│   │   │   └── <span class="file">OrderTracking.js</span>   <span class="comment"># Track order status</span>
+│   │   ├── <span class="file">App.js</span>                 <span class="comment"># Main app component</span>
+│   │   └── <span class="file">index.js</span>               <span class="comment"># Entry point</span>
+│   ├── <span class="folder">📁 public/</span>                <span class="comment"># Static files</span>
+│   ├── <span class="file">.env</span>                       <span class="comment"># Frontend env vars</span>
+│   ├── <span class="file">package.json</span>               <span class="comment"># NPM dependencies</span>
+│   ├── <span class="file">tailwind.config.js</span>        <span class="comment"># Tailwind CSS config</span>
+│   └── <span class="file">vercel.json</span>               <span class="comment"># Vercel deployment config</span>
+│
+├── <span class="folder">📁 docs/</span>                       <span class="comment"># Documentation guides</span>
+│   ├── <span class="file">Guide_01_Domain_Deployment.html</span>
+│   ├── <span class="file">Guide_02_Database_Schema.html</span>
+│   ├── <span class="file">Guide_03_Manager_Dashboard.html</span>
+│   ├── <span class="file">Guide_04_Financial_Logic.html</span>
+│   ├── <span class="file">Guide_05_Manager_Manual.html</span>
+│   ├── <span class="file">Guide_06_Employee_Manual.html</span>
+│   ├── <span class="file">Guide_07_Troubleshooting.html</span>
+│   └── <span class="file">Guide_08_Test_Credentials.html</span>
+│
+├── <span class="folder">📁 memory/</span>                     <span class="comment"># Project documentation</span>
+│   ├── <span class="file">PRD.md</span>                     <span class="comment"># Product Requirements Doc</span>
+│   └── <span class="file">test_credentials.md</span>       <span class="comment"># Login credentials</span>
+│
+├── <span class="file">render.yaml</span>                    <span class="comment"># Render deployment config</span>
+├── <span class="file">DEPLOYMENT_GUIDE.md</span>            <span class="comment"># Main deployment guide</span>
+└── <span class="file">README.md</span>                      <span class="comment"># Project readme</span>
+            </div>
+        </div>
+
+        <!-- KEY FILES REFERENCE -->
+        <div class="section">
+            <div class="section-title">📌 Key Files Quick Reference</div>
+
+            <table>
+                <tr>
+                    <th>What You Need</th>
+                    <th>File Location</th>
+                </tr>
+                <tr>
+                    <td>Backend API endpoints</td>
+                    <td><code>/app/backend/server.py</code></td>
+                </tr>
+                <tr>
+                    <td>Frontend homepage</td>
+                    <td><code>/app/frontend/src/pages/Home.js</code></td>
+                </tr>
+                <tr>
+                    <td>Admin dashboard</td>
+                    <td><code>/app/frontend/src/pages/Admin.js</code></td>
+                </tr>
+                <tr>
+                    <td>Checkout/payment</td>
+                    <td><code>/app/frontend/src/pages/Checkout.js</code></td>
+                </tr>
+                <tr>
+                    <td>User authentication</td>
+                    <td><code>/app/frontend/src/contexts/AuthContext.js</code></td>
+                </tr>
+                <tr>
+                    <td>Shopping cart logic</td>
+                    <td><code>/app/frontend/src/contexts/CartContext.js</code></td>
+                </tr>
+                <tr>
+                    <td>Backend env variables</td>
+                    <td><code>/app/backend/.env</code></td>
+                </tr>
+                <tr>
+                    <td>Frontend env variables</td>
+                    <td><code>/app/frontend/.env</code></td>
+                </tr>
+                <tr>
+                    <td>Python dependencies</td>
+                    <td><code>/app/backend/requirements.txt</code></td>
+                </tr>
+                <tr>
+                    <td>NPM dependencies</td>
+                    <td><code>/app/frontend/package.json</code></td>
+                </tr>
+                <tr>
+                    <td>Tailwind styling</td>
+                    <td><code>/app/frontend/tailwind.config.js</code></td>
+                </tr>
+                <tr>
+                    <td>Vercel config</td>
+                    <td><code>/app/frontend/vercel.json</code></td>
+                </tr>
+                <tr>
+                    <td>Render config</td>
+                    <td><code>/app/render.yaml</code></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- USEFUL COMMANDS -->
+        <div class="section">
+            <div class="section-title">⌨️ Useful Commands</div>
+
+            <table>
+                <tr>
+                    <th>Action</th>
+                    <th>Command</th>
+                </tr>
+                <tr>
+                    <td>Install backend dependencies</td>
+                    <td><code>cd /app/backend && pip install -r requirements.txt</code></td>
+                </tr>
+                <tr>
+                    <td>Install frontend dependencies</td>
+                    <td><code>cd /app/frontend && yarn install</code></td>
+                </tr>
+                <tr>
+                    <td>Start backend locally</td>
+                    <td><code>uvicorn server:app --reload --port 8001</code></td>
+                </tr>
+                <tr>
+                    <td>Start frontend locally</td>
+                    <td><code>yarn start</code></td>
+                </tr>
+                <tr>
+                    <td>Build frontend for production</td>
+                    <td><code>yarn build</code></td>
+                </tr>
+                <tr>
+                    <td>Check backend health</td>
+                    <td><code>curl https://your-backend.onrender.com/api/health</code></td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="footer">
+            <p>🔧 SnapAlign Guide 7: Troubleshooting & File Map</p>
+            <p>Version 1.0 | July 2025</p>
+        </div>
+    </div>
+</body>
+</html>

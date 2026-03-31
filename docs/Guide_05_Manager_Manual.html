@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide 5: Manager's User Manual - SnapAlign</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.7;
+        }
+        .page {
+            max-width: 850px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            padding: 40px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+            color: white;
+            padding: 35px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2em; margin-bottom: 10px; }
+        .section {
+            margin: 30px 0;
+            padding: 25px;
+            background: #faf5ff;
+            border-radius: 15px;
+            border-left: 5px solid #a855f7;
+        }
+        .section-title {
+            font-size: 1.4em;
+            color: #7c3aed;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .step-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+            border: 1px solid #e9d5ff;
+        }
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .step-number {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        .step-title { font-weight: bold; font-size: 1.15em; }
+        .screenshot-box {
+            background: linear-gradient(135deg, #f3e8ff, #faf5ff);
+            border: 3px dashed #c084fc;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .screenshot-box .icon { font-size: 4em; margin-bottom: 15px; }
+        .screenshot-box .caption { color: #7c3aed; font-style: italic; }
+        .info-box {
+            background: #ede9fe;
+            border: 2px solid #a855f7;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .warning-box {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .success-box {
+            background: #dcfce7;
+            border: 2px solid #22c55e;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .tip-box {
+            background: #fce7f3;
+            border: 2px solid #ec4899;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e9d5ff;
+        }
+        th { background: #7c3aed; color: white; }
+        .action-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin: 5px;
+        }
+        .menu-path {
+            background: #f3e8ff;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            display: inline-block;
+            margin: 5px 0;
+        }
+        code {
+            background: #f3e8ff;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #7c3aed;
+        }
+        .flow-diagram {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+            padding: 25px;
+            background: #faf5ff;
+            border-radius: 15px;
+        }
+        .flow-item {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #e9d5ff;
+            min-width: 120px;
+        }
+        .flow-item .icon { font-size: 2em; margin-bottom: 8px; }
+        .flow-item .label { font-size: 0.9em; font-weight: bold; }
+        .flow-arrow { font-size: 2em; color: #a855f7; }
+        .credentials-card {
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            color: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        .credentials-card h3 { margin-bottom: 15px; }
+        .cred-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 8px;
+            margin: 8px 0;
+        }
+        .page-break { page-break-before: always; margin-top: 40px; }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            border-top: 1px solid #e9d5ff;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- HEADER -->
+        <div class="header">
+            <h1>👔 Guide 5: Manager's User Manual</h1>
+            <p>Complete Instructions for Admin Dashboard Operations</p>
+        </div>
+
+        <div class="credentials-card">
+            <h3>🔐 Your Manager Login</h3>
+            <div class="cred-row">
+                <span>📧 URL:</span>
+                <strong>https://snapalign.in/admin</strong>
+            </div>
+            <div class="cred-row">
+                <span>📧 Email:</span>
+                <strong>admin@snapalign.in</strong>
+            </div>
+            <div class="cred-row">
+                <span>🔑 Password:</span>
+                <strong>snapalign2026</strong>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>🧒 Simple Explanation:</strong> As a manager, you're the boss of the online shop! 
+            You can see all the money coming in, track packages from China, make sure nobody loses money on discounts, 
+            and watch what your employees are doing. This guide shows you how to do everything! 👨‍💼
+        </div>
+
+        <!-- LOGIN -->
+        <div class="section">
+            <div class="section-title">🔐 Part 1: Logging In</div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Open Admin Page</div>
+                </div>
+                <p>Type this in your browser:</p>
+                <div class="menu-path">https://snapalign.in/admin</div>
+                
+                <div class="screenshot-box">
+                    <div class="icon">🔐</div>
+                    <div class="caption">Login Screen - Enter your email and password</div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Enter Your Credentials</div>
+                </div>
+                <ul>
+                    <li>📧 Email: <code>admin@snapalign.in</code></li>
+                    <li>🔑 Password: <code>snapalign2026</code></li>
+                    <li>👆 Click <span class="action-button">Login</span></li>
+                </ul>
+                
+                <div class="success-box">
+                    ✅ You'll see the dashboard with all your stats!
+                </div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD NAVIGATION -->
+        <div class="section">
+            <div class="section-title">📊 Part 2: Dashboard Navigation</div>
+            
+            <p>The admin panel has 6 main tabs:</p>
+            
+            <table>
+                <tr>
+                    <th>Tab</th>
+                    <th>Icon</th>
+                    <th>What You Can Do</th>
+                </tr>
+                <tr>
+                    <td><strong>Dashboard</strong></td>
+                    <td>📊</td>
+                    <td>See revenue, profits, and quick stats</td>
+                </tr>
+                <tr>
+                    <td><strong>Orders</strong></td>
+                    <td>📦</td>
+                    <td>View all orders, add tracking numbers</td>
+                </tr>
+                <tr>
+                    <td><strong>Products</strong></td>
+                    <td>🏷️</td>
+                    <td>Add/edit products, set prices</td>
+                </tr>
+                <tr>
+                    <td><strong>Warehouse</strong></td>
+                    <td>🏭</td>
+                    <td>Check stock levels, bin locations</td>
+                </tr>
+                <tr>
+                    <td><strong>Dead Stock</strong></td>
+                    <td>☠️</td>
+                    <td>See products not selling (30+ days)</td>
+                </tr>
+                <tr>
+                    <td><strong>Settings</strong></td>
+                    <td>⚙️</td>
+                    <td>Change password, Razorpay keys</td>
+                </tr>
+            </table>
+
+            <div class="screenshot-box">
+                <div class="icon">📱</div>
+                <div class="caption">Dashboard with tabs on the left side</div>
+            </div>
+        </div>
+
+        <!-- ALIBABA TRACKING -->
+        <div class="section page-break">
+            <div class="section-title">🚢 Part 3: Tracking Alibaba Shipments</div>
+            
+            <div class="info-box">
+                <strong>Why track shipments?</strong> When you order from China, packages take 15-30 days. 
+                Tracking helps you know when stock will arrive so you don't run out!
+            </div>
+
+            <div class="flow-diagram">
+                <div class="flow-item">
+                    <div class="icon">🏭</div>
+                    <div class="label">Ordered</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-item">
+                    <div class="icon">🚢</div>
+                    <div class="label">Shipped</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-item">
+                    <div class="icon">🛃</div>
+                    <div class="label">Customs</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-item">
+                    <div class="icon">📦</div>
+                    <div class="label">Delivered!</div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Add New Shipment</div>
+                </div>
+                <p>Go to: <span class="menu-path">Dashboard → Alibaba Shipments → + Add Shipment</span></p>
+                
+                <p>Fill in the form:</p>
+                <table>
+                    <tr><th>Field</th><th>Example</th></tr>
+                    <tr><td>Tracking Number</td><td><code>SF1234567890CN</code></td></tr>
+                    <tr><td>Supplier Name</td><td>Shenzhen Phone Co.</td></tr>
+                    <tr><td>Order Date</td><td>July 1, 2025</td></tr>
+                    <tr><td>Total Cost ($)</td><td>$1,500.00</td></tr>
+                    <tr><td>Shipping Cost ($)</td><td>$200.00</td></tr>
+                </table>
+                
+                <div class="screenshot-box">
+                    <div class="icon">📝</div>
+                    <div class="caption">Add Shipment Form</div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Track Shipment Status</div>
+                </div>
+                <p>Click on any shipment to see:</p>
+                <ul>
+                    <li>📍 Current location</li>
+                    <li>📅 Expected delivery date</li>
+                    <li>💰 Total landed cost calculation</li>
+                    <li>📦 Items in the shipment</li>
+                </ul>
+                
+                <div class="tip-box">
+                    💡 <strong>Tip:</strong> Track your shipments on <code>17track.net</code> for more detailed updates!
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <div class="step-title">Update When Delivered</div>
+                </div>
+                <ul>
+                    <li>👆 Click on the shipment</li>
+                    <li>👆 Click <span class="action-button">Mark as Delivered</span></li>
+                    <li>✍️ Enter actual duty paid (₹)</li>
+                    <li>✅ Stock automatically added to products!</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- PROFIT MONITORING -->
+        <div class="section page-break">
+            <div class="section-title">💰 Part 4: Monitoring INR Margins</div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-title">View Profit Dashboard</div>
+                </div>
+                <p>Go to: <span class="menu-path">Dashboard → Financial Summary</span></p>
+                
+                <p>You'll see:</p>
+                <table>
+                    <tr><th>Metric</th><th>What It Means</th></tr>
+                    <tr><td>💵 Gross Revenue</td><td>Total sales before any deductions</td></tr>
+                    <tr><td>📦 Landed Cost (COGS)</td><td>What you paid for the products</td></tr>
+                    <tr><td>💳 Payment Fees (2%)</td><td>Razorpay charges</td></tr>
+                    <tr><td>🎟️ Coupon Discounts</td><td>Money lost to coupons</td></tr>
+                    <tr><td style="background: #dcfce7;"><strong>📈 Net Profit</strong></td><td><strong>Your actual profit!</strong></td></tr>
+                </table>
+                
+                <div class="screenshot-box">
+                    <div class="icon">📊</div>
+                    <div class="caption">Financial Summary Table</div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Check Product Margins</div>
+                </div>
+                <p>Go to: <span class="menu-path">Products → Click any product → View Margin</span></p>
+                
+                <p>For each product, you can see:</p>
+                <ul>
+                    <li>💰 Selling Price: ₹499</li>
+                    <li>📦 Landed Cost: ₹209</li>
+                    <li>📊 Margin: ₹290 (58%)</li>
+                </ul>
+                
+                <div class="warning-box">
+                    ⚠️ <strong>Warning Colors:</strong><br>
+                    🟢 Green (>40%) = Good margin<br>
+                    🟡 Yellow (20-40%) = Okay margin<br>
+                    🔴 Red (<20%) = Low margin - consider raising price!
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <div class="step-title">Review Coupon Impact</div>
+                </div>
+                <p>Go to: <span class="menu-path">Dashboard → Coupon Analytics</span></p>
+                
+                <p>See how much money coupons are costing you:</p>
+                <ul>
+                    <li>📊 Total coupon usage this month</li>
+                    <li>💸 Total discount given</li>
+                    <li>📈 Orders with vs without coupons</li>
+                </ul>
+                
+                <div class="tip-box">
+                    💡 <strong>Tip:</strong> If a coupon is causing losses, the system will automatically BLOCK it!
+                </div>
+            </div>
+        </div>
+
+        <!-- EMPLOYEE MANAGEMENT -->
+        <div class="section page-break">
+            <div class="section-title">👥 Part 5: Managing Employees</div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Add New Employee</div>
+                </div>
+                <p>Go to: <span class="menu-path">Settings → Users → + Add Employee</span></p>
+                
+                <table>
+                    <tr><th>Field</th><th>Example</th></tr>
+                    <tr><td>Name</td><td>Rahul Kumar</td></tr>
+                    <tr><td>Email</td><td>rahul@snapalign.in</td></tr>
+                    <tr><td>Phone</td><td>+91 98765 43210</td></tr>
+                    <tr><td>Role</td><td>Employee (Warehouse)</td></tr>
+                </table>
+                
+                <div class="info-box">
+                    📱 Employees will use their phone to scan orders in the warehouse!
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Monitor Employee Activity</div>
+                </div>
+                <p>Go to: <span class="menu-path">Dashboard → Active Employees</span></p>
+                
+                <p>You can see:</p>
+                <ul>
+                    <li>🟢 Who's currently online</li>
+                    <li>📦 Orders they've processed today</li>
+                    <li>⏱️ Last activity time</li>
+                </ul>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <div class="step-title">View Activity Log</div>
+                </div>
+                <p>Go to: <span class="menu-path">Settings → Activity Log</span></p>
+                
+                <p>See everything that happened:</p>
+                <ul>
+                    <li>✅ Order #1234 scanned by Rahul at 2:30 PM</li>
+                    <li>📦 Order #1235 packed by Priya at 2:45 PM</li>
+                    <li>🚚 Order #1236 marked shipped by Amit at 3:00 PM</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- SETTINGS -->
+        <div class="section page-break">
+            <div class="section-title">⚙️ Part 6: Changing Settings</div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Change Admin Password</div>
+                </div>
+                <p>Go to: <span class="menu-path">Settings → Security → Change Password</span></p>
+                
+                <ul>
+                    <li>✍️ Enter current password</li>
+                    <li>✍️ Enter new password (min 8 characters)</li>
+                    <li>✍️ Confirm new password</li>
+                    <li>👆 Click <span class="action-button">Save</span></li>
+                </ul>
+                
+                <div class="warning-box">
+                    ⚠️ <strong>Security Tip:</strong> Use a strong password with letters, numbers, and symbols!
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Update Razorpay Keys</div>
+                </div>
+                <p>Go to: <span class="menu-path">Settings → Payment → Razorpay</span></p>
+                
+                <table>
+                    <tr><th>Field</th><th>Where to Get It</th></tr>
+                    <tr><td>Key ID</td><td>Razorpay Dashboard → Settings → API Keys</td></tr>
+                    <tr><td>Key Secret</td><td>Razorpay Dashboard → Settings → API Keys</td></tr>
+                </table>
+                
+                <ul>
+                    <li>✍️ Paste your new Key ID</li>
+                    <li>✍️ Paste your new Key Secret</li>
+                    <li>👆 Click <span class="action-button">Save Settings</span></li>
+                </ul>
+                
+                <div class="success-box">
+                    ✅ <strong>Test Mode vs Live Mode:</strong><br>
+                    • <code>rzp_test_xxx</code> = Test mode (no real money)<br>
+                    • <code>rzp_live_xxx</code> = Live mode (real money!)
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <div class="step-title">Update Exchange Rate</div>
+                </div>
+                <p>Go to: <span class="menu-path">Settings → Financial → Exchange Rate</span></p>
+                
+                <ul>
+                    <li>✍️ Enter current USD to INR rate (e.g., 83.50)</li>
+                    <li>👆 Click <span class="action-button">Update</span></li>
+                </ul>
+                
+                <div class="info-box">
+                    💡 Check <code>xe.com</code> for current exchange rates!
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>👔 SnapAlign Guide 5: Manager's User Manual</p>
+            <p>Version 1.0 | July 2025</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide 4: Financial Logic & Math - SnapAlign</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f8fafc;
+            color: #1e293b;
+            line-height: 1.7;
+        }
+        .page {
+            max-width: 850px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            padding: 40px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            padding: 35px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2.2em; margin-bottom: 10px; }
+        .section {
+            margin: 30px 0;
+            padding: 25px;
+            background: #f1f5f9;
+            border-radius: 15px;
+            border-left: 5px solid #3b82f6;
+        }
+        .section-title {
+            font-size: 1.4em;
+            color: #1e40af;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .formula-box {
+            background: linear-gradient(135deg, #1e3a5f, #0f172a);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .formula {
+            font-size: 1.5em;
+            font-family: 'Times New Roman', serif;
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+        .formula-label {
+            color: #94a3b8;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        .example-box {
+            background: white;
+            border: 2px solid #3b82f6;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        .example-title {
+            color: #1e40af;
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        .calc-step {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px;
+            margin: 8px 0;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+        .calc-step-num {
+            width: 30px;
+            height: 30px;
+            background: #3b82f6;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .calc-result {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 1.2em;
+            margin-top: 15px;
+            text-align: center;
+        }
+        .danger-result {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 25px;
+            border-radius: 12px;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            margin: 15px 0;
+            white-space: pre;
+            line-height: 1.5;
+        }
+        .code-comment { color: #64748b; }
+        .code-keyword { color: #f472b6; }
+        .code-string { color: #a5f3fc; }
+        .code-number { color: #fbbf24; }
+        .code-function { color: #34d399; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th { background: #1e40af; color: white; }
+        .warning-box {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .danger-box {
+            background: #fee2e2;
+            border: 2px solid #ef4444;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .success-box {
+            background: #dcfce7;
+            border: 2px solid #22c55e;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .info-box {
+            background: #e0f2fe;
+            border: 2px solid #0ea5e9;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .visual-diagram {
+            background: #f1f5f9;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .flow-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .flow-box {
+            background: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            border: 2px solid #cbd5e1;
+        }
+        .flow-box.highlight { border-color: #3b82f6; background: #eff6ff; }
+        .flow-arrow { font-size: 1.5em; color: #64748b; }
+        .page-break { page-break-before: always; margin-top: 40px; }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- HEADER -->
+        <div class="header">
+            <h1>📐 Guide 4: Financial Logic & Math</h1>
+            <p>Landed Cost Calculator & Profit Guardrail System</p>
+        </div>
+
+        <div class="info-box">
+            <strong>🧒 Simple Explanation:</strong> When you buy stuff from China (Alibaba), you pay for the product + shipping + taxes. 
+            We need to know the TOTAL cost before we can decide the selling price. 
+            This guide shows you the math to make sure you never lose money! 💰
+        </div>
+
+        <!-- LANDED COST FORMULA -->
+        <div class="section">
+            <div class="section-title">📦 Part 1: Landed Cost Calculator</div>
+            
+            <p>The "Landed Cost" is the TOTAL cost of getting a product from Alibaba to your warehouse in India.</p>
+
+            <div class="formula-box">
+                <div class="formula-label">THE MAGIC FORMULA</div>
+                <div class="formula">
+                    Landed Cost = (Alibaba Price + Shipping) × (1 + Duty%) × 1.18 × Exchange Rate
+                </div>
+                <p style="font-size: 0.9em; color: #94a3b8; margin-top: 15px;">
+                    The 1.18 multiplier accounts for 18% GST
+                </p>
+            </div>
+
+            <h4 style="margin-top: 25px;">Formula Components:</h4>
+            <table>
+                <tr>
+                    <th>Component</th>
+                    <th>What It Means</th>
+                    <th>Example</th>
+                </tr>
+                <tr>
+                    <td><strong>Alibaba Price</strong></td>
+                    <td>Cost per unit on Alibaba (USD)</td>
+                    <td>$1.50</td>
+                </tr>
+                <tr>
+                    <td><strong>Shipping</strong></td>
+                    <td>Shipping cost per unit (USD)</td>
+                    <td>$0.30</td>
+                </tr>
+                <tr>
+                    <td><strong>Duty %</strong></td>
+                    <td>Import duty rate (varies by product)</td>
+                    <td>18%</td>
+                </tr>
+                <tr>
+                    <td><strong>GST</strong></td>
+                    <td>Goods & Services Tax (fixed 18%)</td>
+                    <td>×1.18</td>
+                </tr>
+                <tr>
+                    <td><strong>Exchange Rate</strong></td>
+                    <td>Current USD to INR rate</td>
+                    <td>₹83.50</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- CALCULATION EXAMPLE -->
+        <div class="example-box">
+            <div class="example-title">📱 Example: iPhone Clear Case from Alibaba</div>
+            
+            <div class="visual-diagram">
+                <div class="flow-row">
+                    <div class="flow-box">🏭 Alibaba<br><strong>$1.50</strong></div>
+                    <span class="flow-arrow">+</span>
+                    <div class="flow-box">🚢 Shipping<br><strong>$0.30</strong></div>
+                    <span class="flow-arrow">=</span>
+                    <div class="flow-box highlight">📦 FOB Cost<br><strong>$1.80</strong></div>
+                </div>
+                <div class="flow-row">
+                    <div class="flow-box">📦 $1.80</div>
+                    <span class="flow-arrow">×</span>
+                    <div class="flow-box">📋 Duty 18%<br><strong>×1.18</strong></div>
+                    <span class="flow-arrow">=</span>
+                    <div class="flow-box highlight">$2.124</div>
+                </div>
+                <div class="flow-row">
+                    <div class="flow-box">$2.124</div>
+                    <span class="flow-arrow">×</span>
+                    <div class="flow-box">🧾 GST 18%<br><strong>×1.18</strong></div>
+                    <span class="flow-arrow">=</span>
+                    <div class="flow-box highlight">$2.506</div>
+                </div>
+                <div class="flow-row">
+                    <div class="flow-box">$2.506</div>
+                    <span class="flow-arrow">×</span>
+                    <div class="flow-box">💱 Rate<br><strong>₹83.50</strong></div>
+                    <span class="flow-arrow">=</span>
+                    <div class="flow-box" style="background: #22c55e; color: white; border-color: #22c55e;">💰 Landed Cost<br><strong>₹209.25</strong></div>
+                </div>
+            </div>
+
+            <h4>Step-by-Step Calculation:</h4>
+            <div class="calc-step">
+                <div class="calc-step-num">1</div>
+                <div>FOB Cost = $1.50 + $0.30 = <strong>$1.80</strong></div>
+            </div>
+            <div class="calc-step">
+                <div class="calc-step-num">2</div>
+                <div>After Duty = $1.80 × 1.18 = <strong>$2.124</strong></div>
+            </div>
+            <div class="calc-step">
+                <div class="calc-step-num">3</div>
+                <div>After GST = $2.124 × 1.18 = <strong>$2.506</strong></div>
+            </div>
+            <div class="calc-step">
+                <div class="calc-step-num">4</div>
+                <div>In INR = $2.506 × ₹83.50 = <strong>₹209.25</strong></div>
+            </div>
+
+            <div class="calc-result">
+                ✅ Landed Cost = ₹209.25 per piece
+            </div>
+        </div>
+
+        <!-- PYTHON CODE -->
+        <div class="section page-break">
+            <div class="section-title">💻 Python Code Implementation</div>
+
+            <div class="code-block"><span class="code-comment"># Landed Cost Calculator Function</span>
+
+<span class="code-keyword">def</span> <span class="code-function">calculate_landed_cost</span>(
+    alibaba_price_usd: <span class="code-keyword">float</span>,
+    shipping_cost_usd: <span class="code-keyword">float</span>,
+    duty_percent: <span class="code-keyword">float</span> = <span class="code-number">18.0</span>,
+    gst_percent: <span class="code-keyword">float</span> = <span class="code-number">18.0</span>,
+    exchange_rate: <span class="code-keyword">float</span> = <span class="code-number">83.50</span>
+) -> <span class="code-keyword">float</span>:
+    <span class="code-string">"""
+    Calculate the total landed cost in INR.
+    
+    Args:
+        alibaba_price_usd: Unit price from Alibaba ($)
+        shipping_cost_usd: Shipping per unit ($)
+        duty_percent: Import duty rate (default 18%)
+        gst_percent: GST rate (default 18%)
+        exchange_rate: USD to INR rate
+    
+    Returns:
+        Landed cost in INR (₹)
+    """</span>
+    
+    <span class="code-comment"># Step 1: FOB Cost (Free on Board)</span>
+    fob_cost = alibaba_price_usd + shipping_cost_usd
+    
+    <span class="code-comment"># Step 2: Add Import Duty</span>
+    after_duty = fob_cost * (<span class="code-number">1</span> + duty_percent / <span class="code-number">100</span>)
+    
+    <span class="code-comment"># Step 3: Add GST</span>
+    after_gst = after_duty * (<span class="code-number">1</span> + gst_percent / <span class="code-number">100</span>)
+    
+    <span class="code-comment"># Step 4: Convert to INR</span>
+    landed_cost_inr = after_gst * exchange_rate
+    
+    <span class="code-keyword">return</span> <span class="code-function">round</span>(landed_cost_inr, <span class="code-number">2</span>)
+
+
+<span class="code-comment"># Example Usage</span>
+cost = <span class="code-function">calculate_landed_cost</span>(
+    alibaba_price_usd=<span class="code-number">1.50</span>,
+    shipping_cost_usd=<span class="code-number">0.30</span>,
+    duty_percent=<span class="code-number">18</span>
+)
+<span class="code-function">print</span>(<span class="code-string">f"Landed Cost: ₹{cost}"</span>)  <span class="code-comment"># Output: ₹209.25</span></div>
+        </div>
+
+        <!-- PROFIT GUARDRAIL -->
+        <div class="section page-break">
+            <div class="section-title">🛡️ Part 2: Profit Guardrail System</div>
+
+            <div class="danger-box">
+                <strong>⚠️ THE GOLDEN RULE:</strong><br><br>
+                <span style="font-size: 1.2em; font-family: monospace;">
+                    (Selling Price - Coupon Discount) must be > Landed Cost
+                </span>
+                <br><br>
+                If this rule is violated = <strong style="color: #dc2626;">BLOCKED! 🚫</strong>
+            </div>
+
+            <div class="formula-box">
+                <div class="formula-label">PROFIT GUARDRAIL CHECK</div>
+                <div class="formula">
+                    Net Price = Selling Price - Coupon Discount<br><br>
+                    IF Net Price < Landed Cost → 🚫 BLOCK ACTION
+                </div>
+            </div>
+
+            <h4 style="margin-top: 25px;">What Gets Blocked?</h4>
+            <table>
+                <tr>
+                    <th>Action</th>
+                    <th>When Blocked</th>
+                </tr>
+                <tr>
+                    <td>Creating new coupon</td>
+                    <td>If any product would result in loss</td>
+                </tr>
+                <tr>
+                    <td>Applying coupon to order</td>
+                    <td>If order total after discount < total landed cost</td>
+                </tr>
+                <tr>
+                    <td>Setting product price</td>
+                    <td>If new price < landed cost</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- GUARDRAIL EXAMPLES -->
+        <div class="example-box">
+            <div class="example-title">✅ Example 1: SAFE Coupon</div>
+            
+            <table>
+                <tr><td>Product</td><td>iPhone Case</td></tr>
+                <tr><td>Selling Price</td><td>₹499</td></tr>
+                <tr><td>Landed Cost</td><td>₹209</td></tr>
+                <tr><td>Coupon</td><td>20% off = ₹99.80</td></tr>
+            </table>
+            
+            <div class="calc-step">
+                <div class="calc-step-num">✓</div>
+                <div>Net Price = ₹499 - ₹99.80 = <strong>₹399.20</strong></div>
+            </div>
+            <div class="calc-step">
+                <div class="calc-step-num">✓</div>
+                <div>₹399.20 > ₹209 (Landed Cost)</div>
+            </div>
+            
+            <div class="calc-result">
+                ✅ ALLOWED - Profit: ₹190.20 per sale
+            </div>
+        </div>
+
+        <div class="example-box">
+            <div class="example-title">🚫 Example 2: BLOCKED Coupon</div>
+            
+            <table>
+                <tr><td>Product</td><td>iPhone Case</td></tr>
+                <tr><td>Selling Price</td><td>₹499</td></tr>
+                <tr><td>Landed Cost</td><td>₹209</td></tr>
+                <tr><td>Coupon</td><td>60% off = ₹299.40</td></tr>
+            </table>
+            
+            <div class="calc-step">
+                <div class="calc-step-num">✗</div>
+                <div>Net Price = ₹499 - ₹299.40 = <strong>₹199.60</strong></div>
+            </div>
+            <div class="calc-step">
+                <div class="calc-step-num">✗</div>
+                <div>₹199.60 < ₹209 (Landed Cost) 😱</div>
+            </div>
+            
+            <div class="calc-result danger-result">
+                🚫 BLOCKED - Would LOSE ₹9.40 per sale!
+            </div>
+        </div>
+
+        <!-- VALIDATION CODE -->
+        <div class="section page-break">
+            <div class="section-title">💻 Profit Guardrail Code</div>
+
+            <div class="code-block"><span class="code-comment"># Profit Guardrail Validation</span>
+
+<span class="code-keyword">class</span> <span class="code-function">ProfitGuardrailError</span>(<span class="code-keyword">Exception</span>):
+    <span class="code-string">"""Raised when an action would result in a loss."""</span>
+    <span class="code-keyword">pass</span>
+
+
+<span class="code-keyword">def</span> <span class="code-function">validate_coupon_profitability</span>(
+    selling_price: <span class="code-keyword">float</span>,
+    landed_cost: <span class="code-keyword">float</span>,
+    discount_amount: <span class="code-keyword">float</span>
+) -> <span class="code-keyword">dict</span>:
+    <span class="code-string">"""
+    Check if a coupon would result in profit or loss.
+    
+    Returns:
+        dict with 'is_valid', 'net_price', 'profit', 'message'
+    """</span>
+    
+    net_price = selling_price - discount_amount
+    profit = net_price - landed_cost
+    
+    <span class="code-keyword">if</span> net_price < landed_cost:
+        <span class="code-keyword">return</span> {
+            <span class="code-string">"is_valid"</span>: <span class="code-keyword">False</span>,
+            <span class="code-string">"net_price"</span>: net_price,
+            <span class="code-string">"profit"</span>: profit,
+            <span class="code-string">"message"</span>: <span class="code-string">f"🚫 BLOCKED: Would lose ₹{abs(profit):.2f} per sale!"</span>
+        }
+    
+    <span class="code-keyword">return</span> {
+        <span class="code-string">"is_valid"</span>: <span class="code-keyword">True</span>,
+        <span class="code-string">"net_price"</span>: net_price,
+        <span class="code-string">"profit"</span>: profit,
+        <span class="code-string">"message"</span>: <span class="code-string">f"✅ ALLOWED: Profit ₹{profit:.2f} per sale"</span>
+    }
+
+
+<span class="code-comment"># API Endpoint Example</span>
+<span class="code-keyword">@</span>api_router.post(<span class="code-string">"/coupons/validate"</span>)
+<span class="code-keyword">async def</span> <span class="code-function">validate_coupon</span>(request: Request):
+    body = <span class="code-keyword">await</span> request.json()
+    
+    product = <span class="code-keyword">await</span> db.products.find_one(
+        {<span class="code-string">"product_id"</span>: body[<span class="code-string">"product_id"</span>]}
+    )
+    
+    result = <span class="code-function">validate_coupon_profitability</span>(
+        selling_price=product[<span class="code-string">"price"</span>],
+        landed_cost=product[<span class="code-string">"cost_price"</span>],
+        discount_amount=body[<span class="code-string">"discount_amount"</span>]
+    )
+    
+    <span class="code-keyword">if not</span> result[<span class="code-string">"is_valid"</span>]:
+        <span class="code-keyword">raise</span> HTTPException(
+            status_code=<span class="code-number">400</span>,
+            detail=result[<span class="code-string">"message"</span>]
+        )
+    
+    <span class="code-keyword">return</span> result</div>
+        </div>
+
+        <!-- QUICK REFERENCE -->
+        <div class="section">
+            <div class="section-title">📋 Quick Reference Card</div>
+            
+            <table>
+                <tr>
+                    <th>Formula</th>
+                    <th>Use Case</th>
+                </tr>
+                <tr>
+                    <td><code>FOB = Price + Shipping</code></td>
+                    <td>Basic cost before taxes</td>
+                </tr>
+                <tr>
+                    <td><code>After Duty = FOB × (1 + Duty%)</code></td>
+                    <td>Add import duty</td>
+                </tr>
+                <tr>
+                    <td><code>After GST = After Duty × 1.18</code></td>
+                    <td>Add 18% GST</td>
+                </tr>
+                <tr>
+                    <td><code>Landed = After GST × Exchange Rate</code></td>
+                    <td>Convert to INR</td>
+                </tr>
+                <tr>
+                    <td><code>Min Price = Landed Cost + Buffer</code></td>
+                    <td>Never sell below this!</td>
+                </tr>
+                <tr>
+                    <td><code>Profit = Selling - Landed - Fees</code></td>
+                    <td>Your actual profit</td>
+                </tr>
+            </table>
+
+            <div class="success-box">
+                <strong>💡 Pro Tip:</strong> Always add a 10-20% buffer above landed cost for payment fees, returns, and unexpected costs!
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>📐 SnapAlign Guide 4: Financial Logic & Math</p>
+            <p>Version 1.0 | July 2025</p>
+        </div>
+    </div>
+</body>
+</html>

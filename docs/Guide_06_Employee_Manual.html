@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide 6: Employee's User Manual - SnapAlign</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #fff7ed;
+            color: #333;
+            line-height: 1.7;
+        }
+        .page {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            padding: 25px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
+            color: white;
+            padding: 30px 20px;
+            border-radius: 20px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        .header h1 { font-size: 1.8em; margin-bottom: 8px; }
+        .header p { opacity: 0.9; font-size: 1em; }
+        .mobile-note {
+            background: linear-gradient(135deg, #fed7aa, #ffedd5);
+            border: 2px solid #f97316;
+            border-radius: 15px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .mobile-note .icon { font-size: 3em; }
+        .section {
+            margin: 25px 0;
+            padding: 20px;
+            background: #fff7ed;
+            border-radius: 15px;
+            border-left: 5px solid #f97316;
+        }
+        .section-title {
+            font-size: 1.3em;
+            color: #ea580c;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .step-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+            border: 2px solid #fed7aa;
+        }
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        .step-number {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #ea580c, #f97316);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.4em;
+        }
+        .step-title { font-weight: bold; font-size: 1.2em; }
+        .big-button {
+            display: block;
+            background: linear-gradient(135deg, #ea580c, #f97316);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin: 15px 0;
+            text-decoration: none;
+            box-shadow: 0 5px 20px rgba(234, 88, 12, 0.3);
+        }
+        .phone-screen {
+            background: #1a1a1a;
+            border-radius: 30px;
+            padding: 15px;
+            margin: 20px auto;
+            max-width: 280px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        .phone-notch {
+            width: 100px;
+            height: 25px;
+            background: #1a1a1a;
+            border-radius: 0 0 15px 15px;
+            margin: -15px auto 10px auto;
+        }
+        .phone-content {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            min-height: 300px;
+        }
+        .scanner-box {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 3px dashed #f59e0b;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            margin: 15px 0;
+        }
+        .scanner-box .icon { font-size: 4em; animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .success-screen {
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            margin: 15px 0;
+        }
+        .success-screen .icon { font-size: 4em; }
+        .info-box {
+            background: #ffedd5;
+            border: 2px solid #f97316;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .warning-box {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 12px 15px;
+            margin: 8px 0;
+            background: white;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid #fed7aa;
+        }
+        .checklist li .check {
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f97316;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 5px;
+        }
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-ready { background: #dbeafe; color: #1e40af; }
+        .status-packed { background: #dcfce7; color: #166534; }
+        .status-shipped { background: #f3e8ff; color: #7c3aed; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #fed7aa;
+        }
+        th { background: #f97316; color: white; }
+        .page-break { page-break-before: always; margin-top: 40px; }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            border-top: 1px solid #fed7aa;
+            margin-top: 40px;
+        }
+        .emoji-large { font-size: 1.5em; }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- HEADER -->
+        <div class="header">
+            <h1>👷 Employee Guide</h1>
+            <p>Warehouse Scanner App Manual</p>
+        </div>
+
+        <div class="mobile-note">
+            <div class="icon">📱</div>
+            <p><strong>This guide is for MOBILE!</strong><br>Use your phone to scan orders in the warehouse.</p>
+        </div>
+
+        <!-- GETTING STARTED -->
+        <div class="section">
+            <div class="section-title">🚀 Getting Started</div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Open the App</div>
+                </div>
+                <p>On your phone, open the browser and go to:</p>
+                <a href="#" class="big-button">📱 snapalign.in/warehouse</a>
+                
+                <div class="info-box">
+                    💡 <strong>Tip:</strong> Add this page to your home screen for quick access!
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Login</div>
+                </div>
+                <p>Enter the details your manager gave you:</p>
+                <ul>
+                    <li><span class="emoji-large">📧</span> Your email</li>
+                    <li><span class="emoji-large">🔑</span> Your password</li>
+                </ul>
+                
+                <div class="phone-screen">
+                    <div class="phone-notch"></div>
+                    <div class="phone-content" style="text-align: center;">
+                        <h3 style="color: #f97316; margin-bottom: 20px;">👷 Employee Login</h3>
+                        <div style="background: #f5f5f5; padding: 12px; border-radius: 10px; margin: 10px 0;">
+                            📧 rahul@snapalign.in
+                        </div>
+                        <div style="background: #f5f5f5; padding: 12px; border-radius: 10px; margin: 10px 0;">
+                            🔑 ••••••••
+                        </div>
+                        <div style="background: #f97316; color: white; padding: 15px; border-radius: 10px; margin-top: 20px; font-weight: bold;">
+                            Login →
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCANNING ORDERS -->
+        <div class="section page-break">
+            <div class="section-title">📷 Scanning Orders</div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Tap "Scan Order"</div>
+                </div>
+                <p>On the main screen, tap the big scan button:</p>
+                
+                <div class="phone-screen">
+                    <div class="phone-notch"></div>
+                    <div class="phone-content" style="text-align: center;">
+                        <p style="color: #666; margin-bottom: 15px;">Welcome, Rahul! 👋</p>
+                        <div style="background: linear-gradient(135deg, #ea580c, #f97316); color: white; padding: 40px 20px; border-radius: 20px; font-size: 1.2em;">
+                            <div style="font-size: 2em; margin-bottom: 10px;">📷</div>
+                            <strong>SCAN ORDER</strong>
+                        </div>
+                        <p style="color: #666; margin-top: 15px; font-size: 0.9em;">Tap to scan order barcode</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Point Camera at Barcode</div>
+                </div>
+                
+                <div class="scanner-box">
+                    <div class="icon">📷</div>
+                    <p style="margin-top: 15px; font-weight: bold;">Point at the ORDER BARCODE</p>
+                    <p style="font-size: 0.9em; color: #666;">The barcode is on the packing slip</p>
+                </div>
+                
+                <div class="warning-box">
+                    ⚠️ <strong>Make sure:</strong>
+                    <ul style="margin-top: 10px;">
+                        <li>Good lighting</li>
+                        <li>Barcode is flat</li>
+                        <li>Phone is steady</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <div class="step-title">See Order Details</div>
+                </div>
+                <p>After scanning, you'll see the order info:</p>
+                
+                <div class="phone-screen">
+                    <div class="phone-notch"></div>
+                    <div class="phone-content">
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            <span style="background: #dcfce7; color: #166534; padding: 5px 15px; border-radius: 15px; font-size: 0.9em;">✅ Order Found!</span>
+                        </div>
+                        <div style="background: #f5f5f5; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                            <strong style="color: #f97316;">#ORD-2847</strong>
+                            <p style="font-size: 0.9em; color: #666;">Rahul Sharma</p>
+                        </div>
+                        <div style="font-size: 0.9em;">
+                            <p><strong>Items:</strong></p>
+                            <p>• iPhone 15 Case (x2)</p>
+                            <p>• USB-C Cable (x1)</p>
+                            <p style="margin-top: 10px;"><strong>Bin:</strong> Shelf A, Bin 3</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ORDER WORKFLOW -->
+        <div class="section page-break">
+            <div class="section-title">📦 Order Workflow</div>
+            
+            <p style="text-align: center; margin-bottom: 20px;">Follow these steps for every order:</p>
+
+            <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 20px 0;">
+                <span class="status-badge status-pending">1️⃣ Pending</span>
+                <span>→</span>
+                <span class="status-badge status-ready">2️⃣ Picked</span>
+                <span>→</span>
+                <span class="status-badge status-packed">3️⃣ Packed</span>
+                <span>→</span>
+                <span class="status-badge status-shipped">4️⃣ Shipped</span>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">📍</div>
+                    <div class="step-title">Step 1: Pick Items</div>
+                </div>
+                <ul class="checklist">
+                    <li>
+                        <div class="check">☐</div>
+                        <span>Go to the bin location shown</span>
+                    </li>
+                    <li>
+                        <div class="check">☐</div>
+                        <span>Pick the items listed</span>
+                    </li>
+                    <li>
+                        <div class="check">☐</div>
+                        <span>Check quantity is correct</span>
+                    </li>
+                    <li>
+                        <div class="check">☐</div>
+                        <span>Tap <strong>"Items Picked"</strong></span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">📦</div>
+                    <div class="step-title">Step 2: Pack Order</div>
+                </div>
+                <ul class="checklist">
+                    <li>
+                        <div class="check">☐</div>
+                        <span>Get correct size box/mailer</span>
+                    </li>
+                    <li>
+                        <div class="check">☐</div>
+                        <span>Add bubble wrap if fragile</span>
+                    </li>
+                    <li>
+                        <div class="check">☐</div>
+                        <span>Include packing slip</span>
+                    </li>
+                    <li>
+                        <div class="check">☐</div>
+                        <span>Seal the package</span>
+                    </li>
+                    <li>
+                        <div class="check">☐</div>
+                        <span>Tap <strong>"Packed"</strong></span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="step-card">
+                <div class="step-header">
+                    <div class="step-number">🏷️</div>
+                    <div class="step-title">Step 3: Add Shipping Label</div>
+                </div>
+                <ul class="checklist">
+                    <li>
+                        <div class="check">☐</div>
+                        <span>Print shipping label</span>
+                    </li>
+                    <li>
+                        <div class="check">☐</div>
+                        <span>Stick label on package</span>
+                    </li>
+                    <li>
+                        <div class="check">☐</div>
+                        <span>Scan tracking barcode</span>
+                    </li>
+                    <li>
+                        <div class="check">☐</div>
+                        <span>Tap <strong>"Ready to Ship"</strong></span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="success-screen">
+                <div class="icon">✅</div>
+                <h3 style="color: #166534; margin: 10px 0;">Order Complete!</h3>
+                <p style="color: #166534;">Great job! Move to next order.</p>
+            </div>
+        </div>
+
+        <!-- COMMON PROBLEMS -->
+        <div class="section page-break">
+            <div class="section-title">❓ Common Problems</div>
+
+            <div class="step-card">
+                <strong>📷 Camera won't open?</strong>
+                <ul style="margin-top: 10px;">
+                    <li>Check if you allowed camera permission</li>
+                    <li>Go to Settings → Apps → Browser → Permissions → Camera → Allow</li>
+                </ul>
+            </div>
+
+            <div class="step-card">
+                <strong>📦 Item not in bin?</strong>
+                <ul style="margin-top: 10px;">
+                    <li>Check nearby bins</li>
+                    <li>Tap "Report Issue" → "Item Missing"</li>
+                    <li>Manager will be notified</li>
+                </ul>
+            </div>
+
+            <div class="step-card">
+                <strong>🔴 Barcode won't scan?</strong>
+                <ul style="margin-top: 10px;">
+                    <li>Clean the barcode</li>
+                    <li>Try better lighting</li>
+                    <li>Tap "Enter Manually" and type order number</li>
+                </ul>
+            </div>
+
+            <div class="step-card">
+                <strong>📱 App is slow?</strong>
+                <ul style="margin-top: 10px;">
+                    <li>Check WiFi connection</li>
+                    <li>Close other apps</li>
+                    <li>Refresh the page</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- QUICK REFERENCE -->
+        <div class="section">
+            <div class="section-title">📋 Quick Reference</div>
+            
+            <table>
+                <tr>
+                    <th>Action</th>
+                    <th>Button</th>
+                </tr>
+                <tr>
+                    <td>Scan new order</td>
+                    <td>📷 Scan Order</td>
+                </tr>
+                <tr>
+                    <td>Mark items picked</td>
+                    <td>✅ Items Picked</td>
+                </tr>
+                <tr>
+                    <td>Mark packed</td>
+                    <td>📦 Packed</td>
+                </tr>
+                <tr>
+                    <td>Add tracking</td>
+                    <td>🏷️ Add Tracking</td>
+                </tr>
+                <tr>
+                    <td>Report problem</td>
+                    <td>⚠️ Report Issue</td>
+                </tr>
+                <tr>
+                    <td>View all orders</td>
+                    <td>📋 Order List</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- CONTACT -->
+        <div class="info-box" style="text-align: center;">
+            <strong>🆘 Need Help?</strong><br><br>
+            Call your manager or tap <strong>"Report Issue"</strong> in the app!
+        </div>
+
+        <div class="footer">
+            <p>👷 SnapAlign Guide 6: Employee's User Manual</p>
+            <p>Mobile-Optimized Version | July 2025</p>
+        </div>
+    </div>
+</body>
+</html>

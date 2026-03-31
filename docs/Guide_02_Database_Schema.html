@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide 2: Database Schema - SnapAlign</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #0d1117;
+            color: #c9d1d9;
+            line-height: 1.6;
+        }
+        .page {
+            max-width: 850px;
+            margin: 0 auto;
+            background: #161b22;
+            min-height: 100vh;
+            padding: 40px;
+        }
+        .header {
+            background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2em; margin-bottom: 10px; }
+        .header .subtitle { opacity: 0.9; }
+        .header .badge {
+            display: inline-block;
+            background: rgba(0,0,0,0.3);
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+        .section {
+            margin: 30px 0;
+            padding: 25px;
+            background: #21262d;
+            border-radius: 15px;
+            border: 1px solid #30363d;
+        }
+        .section-title {
+            font-size: 1.4em;
+            color: #58a6ff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .schema-card {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .schema-header {
+            background: linear-gradient(135deg, #238636, #2ea043);
+            color: white;
+            padding: 15px 20px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .schema-body {
+            padding: 20px;
+        }
+        .field-row {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #21262d;
+        }
+        .field-row:last-child { border-bottom: none; }
+        .field-name {
+            flex: 1;
+            font-family: 'Courier New', monospace;
+            color: #79c0ff;
+        }
+        .field-type {
+            background: #30363d;
+            padding: 3px 10px;
+            border-radius: 5px;
+            font-size: 0.85em;
+            color: #8b949e;
+            margin-right: 15px;
+        }
+        .field-desc {
+            flex: 2;
+            color: #8b949e;
+            font-size: 0.9em;
+        }
+        .required-badge {
+            background: #f85149;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75em;
+            margin-left: 10px;
+        }
+        .optional-badge {
+            background: #388bfd;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75em;
+            margin-left: 10px;
+        }
+        code {
+            background: #30363d;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #79c0ff;
+        }
+        .code-block {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            white-space: pre;
+            color: #c9d1d9;
+        }
+        .highlight-green { color: #7ee787; }
+        .highlight-blue { color: #79c0ff; }
+        .highlight-orange { color: #ffa657; }
+        .highlight-purple { color: #d2a8ff; }
+        .info-box {
+            background: #1f3a5c;
+            border: 1px solid #388bfd;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .warning-box {
+            background: #3d2a1a;
+            border: 1px solid #d29922;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .visual-box {
+            background: linear-gradient(135deg, #21262d, #30363d);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            margin: 20px 0;
+            border: 1px solid #30363d;
+        }
+        .er-diagram {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 30px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        .er-entity {
+            background: #0d1117;
+            border: 2px solid #30363d;
+            border-radius: 10px;
+            min-width: 180px;
+            overflow: hidden;
+        }
+        .er-entity-name {
+            background: #238636;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .er-entity-fields {
+            padding: 10px;
+            font-size: 0.85em;
+        }
+        .er-entity-fields div {
+            padding: 5px 0;
+            border-bottom: 1px solid #21262d;
+        }
+        .er-relation {
+            color: #58a6ff;
+            font-size: 2em;
+            align-self: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #30363d;
+        }
+        th { background: #238636; color: white; }
+        tr:nth-child(even) { background: #21262d; }
+        .page-break { page-break-before: always; margin-top: 40px; }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #8b949e;
+            border-top: 1px solid #30363d;
+            margin-top: 40px;
+        }
+        @media print {
+            body { background: white; color: #333; }
+            .page { background: white; }
+            .section { background: #f5f5f5; border-color: #ddd; }
+            th { background: #238636; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- HEADER -->
+        <div class="header">
+            <h1>📊 Guide 2: Database Schema</h1>
+            <p class="subtitle">MongoDB Models for SnapAlign E-commerce</p>
+            <span class="badge">Technical Documentation</span>
+        </div>
+
+        <!-- OVERVIEW -->
+        <div class="info-box">
+            <strong>🧒 Simple Explanation:</strong> A database is like a big filing cabinet! 
+            Each "collection" is a drawer, and each "document" is a paper with information. 
+            This guide shows you what papers go in each drawer.
+        </div>
+
+        <!-- ER DIAGRAM -->
+        <div class="visual-box">
+            <h3 style="margin-bottom: 20px;">📐 Entity Relationship Overview</h3>
+            <div class="er-diagram">
+                <div class="er-entity">
+                    <div class="er-entity-name">👤 Users</div>
+                    <div class="er-entity-fields">
+                        <div>🔑 user_id</div>
+                        <div>📧 email</div>
+                        <div>👑 role</div>
+                    </div>
+                </div>
+                <div class="er-relation">↔</div>
+                <div class="er-entity">
+                    <div class="er-entity-name">📦 Products</div>
+                    <div class="er-entity-fields">
+                        <div>🔑 product_id</div>
+                        <div>💰 price</div>
+                        <div>📊 stock</div>
+                    </div>
+                </div>
+                <div class="er-relation">↔</div>
+                <div class="er-entity">
+                    <div class="er-entity-name">🛒 Orders</div>
+                    <div class="er-entity-fields">
+                        <div>🔑 order_id</div>
+                        <div>💵 total</div>
+                        <div>📍 status</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLLECTIONS LIST -->
+        <div class="section">
+            <div class="section-title">📚 All MongoDB Collections</div>
+            <table>
+                <tr>
+                    <th>Collection Name</th>
+                    <th>Purpose</th>
+                    <th>Key Fields</th>
+                </tr>
+                <tr>
+                    <td><code>users</code></td>
+                    <td>Customer & Employee accounts</td>
+                    <td>user_id, email, role</td>
+                </tr>
+                <tr>
+                    <td><code>admin_users</code></td>
+                    <td>Manager accounts</td>
+                    <td>admin_user_id, password_hash</td>
+                </tr>
+                <tr>
+                    <td><code>products</code></td>
+                    <td>Product catalog</td>
+                    <td>product_id, price, landed_cost</td>
+                </tr>
+                <tr>
+                    <td><code>orders</code></td>
+                    <td>Customer orders</td>
+                    <td>order_id, user_id, total</td>
+                </tr>
+                <tr>
+                    <td><code>cart_items</code></td>
+                    <td>Shopping cart</td>
+                    <td>user_id, product_id, qty</td>
+                </tr>
+                <tr>
+                    <td><code>coupons</code></td>
+                    <td>Discount codes</td>
+                    <td>code, discount_percent</td>
+                </tr>
+                <tr>
+                    <td><code>alibaba_shipments</code></td>
+                    <td>Import tracking</td>
+                    <td>tracking_no, status, landed_cost</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- USER SCHEMA -->
+        <div class="section page-break">
+            <div class="section-title">👤 Users Collection Schema</div>
+            
+            <div class="info-box">
+                <strong>Purpose:</strong> Stores all customer and employee accounts with role-based access control.
+            </div>
+
+            <div class="schema-card">
+                <div class="schema-header">📋 users</div>
+                <div class="schema-body">
+                    <div class="field-row">
+                        <span class="field-name">user_id</span>
+                        <span class="field-type">String</span>
+                        <span class="field-desc">Unique identifier (UUID)</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">email</span>
+                        <span class="field-type">String</span>
+                        <span class="field-desc">User's email address</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">name</span>
+                        <span class="field-type">String</span>
+                        <span class="field-desc">Display name</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">role</span>
+                        <span class="field-type">Enum</span>
+                        <span class="field-desc">"customer" | "employee" | "manager"</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">phone</span>
+                        <span class="field-type">String</span>
+                        <span class="field-desc">Contact number</span>
+                        <span class="optional-badge">Optional</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">address</span>
+                        <span class="field-type">Object</span>
+                        <span class="field-desc">Shipping address details</span>
+                        <span class="optional-badge">Optional</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">created_at</span>
+                        <span class="field-type">DateTime</span>
+                        <span class="field-desc">Account creation timestamp</span>
+                        <span class="required-badge">Auto</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="code-block"><span class="highlight-purple">// Example User Document</span>
+{
+  <span class="highlight-blue">"user_id"</span>: <span class="highlight-green">"usr_a1b2c3d4e5f6"</span>,
+  <span class="highlight-blue">"email"</span>: <span class="highlight-green">"employee@snapalign.in"</span>,
+  <span class="highlight-blue">"name"</span>: <span class="highlight-green">"Rahul Kumar"</span>,
+  <span class="highlight-blue">"role"</span>: <span class="highlight-green">"employee"</span>,
+  <span class="highlight-blue">"phone"</span>: <span class="highlight-green">"+91 98765 43210"</span>,
+  <span class="highlight-blue">"warehouse_access"</span>: <span class="highlight-orange">true</span>,
+  <span class="highlight-blue">"created_at"</span>: <span class="highlight-green">"2025-07-15T10:30:00Z"</span>
+}</div>
+
+            <h4 style="margin-top: 20px; color: #58a6ff;">Role Permissions Matrix:</h4>
+            <table>
+                <tr>
+                    <th>Role</th>
+                    <th>View Products</th>
+                    <th>Scan Orders</th>
+                    <th>Edit Prices</th>
+                    <th>View Profit</th>
+                    <th>Manage Staff</th>
+                </tr>
+                <tr>
+                    <td><code>customer</code></td>
+                    <td>✅</td>
+                    <td>❌</td>
+                    <td>❌</td>
+                    <td>❌</td>
+                    <td>❌</td>
+                </tr>
+                <tr>
+                    <td><code>employee</code></td>
+                    <td>✅</td>
+                    <td>✅</td>
+                    <td>❌</td>
+                    <td>❌</td>
+                    <td>❌</td>
+                </tr>
+                <tr>
+                    <td><code>manager</code></td>
+                    <td>✅</td>
+                    <td>✅</td>
+                    <td>✅</td>
+                    <td>✅</td>
+                    <td>✅</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- PRODUCT SCHEMA -->
+        <div class="section page-break">
+            <div class="section-title">📦 Products Collection Schema</div>
+            
+            <div class="warning-box">
+                <strong>💰 Financial Fields:</strong> This collection includes landed cost calculations for profit tracking!
+            </div>
+
+            <div class="schema-card">
+                <div class="schema-header">📋 products</div>
+                <div class="schema-body">
+                    <div class="field-row">
+                        <span class="field-name">product_id</span>
+                        <span class="field-type">String</span>
+                        <span class="field-desc">Unique product identifier</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">name</span>
+                        <span class="field-type">String</span>
+                        <span class="field-desc">Product display name</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">price</span>
+                        <span class="field-type">Number</span>
+                        <span class="field-desc">Selling price in INR (₹)</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">cost_price</span>
+                        <span class="field-type">Number</span>
+                        <span class="field-desc">Landed cost in INR</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">alibaba_price_usd</span>
+                        <span class="field-type">Number</span>
+                        <span class="field-desc">Original Alibaba price ($)</span>
+                        <span class="optional-badge">Optional</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">shipping_cost_usd</span>
+                        <span class="field-type">Number</span>
+                        <span class="field-desc">Shipping from China ($)</span>
+                        <span class="optional-badge">Optional</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">duty_percent</span>
+                        <span class="field-type">Number</span>
+                        <span class="field-desc">Import duty % (default: 18)</span>
+                        <span class="optional-badge">Optional</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">compare_at_price</span>
+                        <span class="field-type">Number</span>
+                        <span class="field-desc">Original price for discounts</span>
+                        <span class="optional-badge">Optional</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">stock</span>
+                        <span class="field-type">Number</span>
+                        <span class="field-desc">Available inventory count</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">bin_location</span>
+                        <span class="field-type">String</span>
+                        <span class="field-desc">Warehouse location (e.g., "A1")</span>
+                        <span class="optional-badge">Optional</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">category</span>
+                        <span class="field-type">String</span>
+                        <span class="field-desc">Product category</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="code-block"><span class="highlight-purple">// Example Product with Landed Cost</span>
+{
+  <span class="highlight-blue">"product_id"</span>: <span class="highlight-green">"prod_phone_case_001"</span>,
+  <span class="highlight-blue">"name"</span>: <span class="highlight-green">"iPhone 15 Pro Max Clear Case"</span>,
+  <span class="highlight-blue">"category"</span>: <span class="highlight-green">"Phone Cases"</span>,
+  
+  <span class="highlight-purple">// Alibaba Import Costs</span>
+  <span class="highlight-blue">"alibaba_price_usd"</span>: <span class="highlight-orange">1.50</span>,
+  <span class="highlight-blue">"shipping_cost_usd"</span>: <span class="highlight-orange">0.30</span>,
+  <span class="highlight-blue">"duty_percent"</span>: <span class="highlight-orange">18</span>,
+  
+  <span class="highlight-purple">// Calculated Landed Cost (INR)</span>
+  <span class="highlight-blue">"cost_price"</span>: <span class="highlight-orange">177.02</span>,  <span class="highlight-purple">// Auto-calculated</span>
+  
+  <span class="highlight-purple">// Selling Prices (INR)</span>
+  <span class="highlight-blue">"price"</span>: <span class="highlight-orange">499</span>,
+  <span class="highlight-blue">"compare_at_price"</span>: <span class="highlight-orange">999</span>,
+  
+  <span class="highlight-purple">// Inventory</span>
+  <span class="highlight-blue">"stock"</span>: <span class="highlight-orange">150</span>,
+  <span class="highlight-blue">"bin_location"</span>: <span class="highlight-green">"Shelf A, Bin 3"</span>
+}</div>
+        </div>
+
+        <!-- COUPONS SCHEMA -->
+        <div class="section page-break">
+            <div class="section-title">🎟️ Coupons Collection Schema</div>
+            
+            <div class="warning-box">
+                <strong>⚠️ Profit Guardrail:</strong> System blocks coupons that would make (Selling Price - Discount) < Landed Cost!
+            </div>
+
+            <div class="schema-card">
+                <div class="schema-header">📋 coupons</div>
+                <div class="schema-body">
+                    <div class="field-row">
+                        <span class="field-name">coupon_id</span>
+                        <span class="field-type">String</span>
+                        <span class="field-desc">Unique coupon identifier</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">code</span>
+                        <span class="field-type">String</span>
+                        <span class="field-desc">Customer-facing code (e.g., "SAVE20")</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">discount_type</span>
+                        <span class="field-type">Enum</span>
+                        <span class="field-desc">"percentage" | "fixed"</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">discount_value</span>
+                        <span class="field-type">Number</span>
+                        <span class="field-desc">Amount (% or ₹)</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">min_cart_value</span>
+                        <span class="field-type">Number</span>
+                        <span class="field-desc">Minimum order amount (₹)</span>
+                        <span class="optional-badge">Optional</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">max_discount</span>
+                        <span class="field-type">Number</span>
+                        <span class="field-desc">Maximum discount cap (₹)</span>
+                        <span class="optional-badge">Optional</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">valid_from</span>
+                        <span class="field-type">DateTime</span>
+                        <span class="field-desc">Start date</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">valid_until</span>
+                        <span class="field-type">DateTime</span>
+                        <span class="field-desc">Expiry date</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">usage_limit</span>
+                        <span class="field-type">Number</span>
+                        <span class="field-desc">Max total uses</span>
+                        <span class="optional-badge">Optional</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">times_used</span>
+                        <span class="field-type">Number</span>
+                        <span class="field-desc">Current usage count</span>
+                        <span class="required-badge">Auto</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">is_active</span>
+                        <span class="field-type">Boolean</span>
+                        <span class="field-desc">Enable/disable coupon</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="code-block"><span class="highlight-purple">// Example Coupon Document</span>
+{
+  <span class="highlight-blue">"coupon_id"</span>: <span class="highlight-green">"coup_summer2025"</span>,
+  <span class="highlight-blue">"code"</span>: <span class="highlight-green">"SUMMER25"</span>,
+  <span class="highlight-blue">"discount_type"</span>: <span class="highlight-green">"percentage"</span>,
+  <span class="highlight-blue">"discount_value"</span>: <span class="highlight-orange">25</span>,
+  <span class="highlight-blue">"min_cart_value"</span>: <span class="highlight-orange">500</span>,
+  <span class="highlight-blue">"max_discount"</span>: <span class="highlight-orange">200</span>,
+  <span class="highlight-blue">"valid_from"</span>: <span class="highlight-green">"2025-06-01T00:00:00Z"</span>,
+  <span class="highlight-blue">"valid_until"</span>: <span class="highlight-green">"2025-08-31T23:59:59Z"</span>,
+  <span class="highlight-blue">"usage_limit"</span>: <span class="highlight-orange">1000</span>,
+  <span class="highlight-blue">"times_used"</span>: <span class="highlight-orange">234</span>,
+  <span class="highlight-blue">"is_active"</span>: <span class="highlight-orange">true</span>
+}</div>
+        </div>
+
+        <!-- ALIBABA SHIPMENTS -->
+        <div class="section page-break">
+            <div class="section-title">🚢 Alibaba Shipments Collection Schema</div>
+
+            <div class="schema-card">
+                <div class="schema-header">📋 alibaba_shipments</div>
+                <div class="schema-body">
+                    <div class="field-row">
+                        <span class="field-name">shipment_id</span>
+                        <span class="field-type">String</span>
+                        <span class="field-desc">Unique shipment identifier</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">tracking_number</span>
+                        <span class="field-type">String</span>
+                        <span class="field-desc">Carrier tracking number</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">supplier_name</span>
+                        <span class="field-type">String</span>
+                        <span class="field-desc">Alibaba seller name</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">items</span>
+                        <span class="field-type">Array</span>
+                        <span class="field-desc">List of products in shipment</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">total_cost_usd</span>
+                        <span class="field-type">Number</span>
+                        <span class="field-desc">Total Alibaba invoice ($)</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">shipping_cost_usd</span>
+                        <span class="field-type">Number</span>
+                        <span class="field-desc">Shipping charges ($)</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">duty_paid_inr</span>
+                        <span class="field-type">Number</span>
+                        <span class="field-desc">Customs duty paid (₹)</span>
+                        <span class="optional-badge">Optional</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">status</span>
+                        <span class="field-type">Enum</span>
+                        <span class="field-desc">"ordered" | "shipped" | "customs" | "delivered"</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">order_date</span>
+                        <span class="field-type">DateTime</span>
+                        <span class="field-desc">When order was placed</span>
+                        <span class="required-badge">Required</span>
+                    </div>
+                    <div class="field-row">
+                        <span class="field-name">expected_delivery</span>
+                        <span class="field-type">DateTime</span>
+                        <span class="field-desc">Expected arrival date</span>
+                        <span class="optional-badge">Optional</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="code-block"><span class="highlight-purple">// Example Alibaba Shipment</span>
+{
+  <span class="highlight-blue">"shipment_id"</span>: <span class="highlight-green">"ship_2025_07_001"</span>,
+  <span class="highlight-blue">"tracking_number"</span>: <span class="highlight-green">"SF1234567890"</span>,
+  <span class="highlight-blue">"supplier_name"</span>: <span class="highlight-green">"Shenzhen Phone Accessories Co."</span>,
+  <span class="highlight-blue">"items"</span>: [
+    { <span class="highlight-blue">"product_id"</span>: <span class="highlight-green">"prod_001"</span>, <span class="highlight-blue">"qty"</span>: <span class="highlight-orange">500</span>, <span class="highlight-blue">"unit_price_usd"</span>: <span class="highlight-orange">1.50</span> },
+    { <span class="highlight-blue">"product_id"</span>: <span class="highlight-green">"prod_002"</span>, <span class="highlight-blue">"qty"</span>: <span class="highlight-orange">300</span>, <span class="highlight-blue">"unit_price_usd"</span>: <span class="highlight-orange">2.20</span> }
+  ],
+  <span class="highlight-blue">"total_cost_usd"</span>: <span class="highlight-orange">1410.00</span>,
+  <span class="highlight-blue">"shipping_cost_usd"</span>: <span class="highlight-orange">180.00</span>,
+  <span class="highlight-blue">"duty_paid_inr"</span>: <span class="highlight-orange">25650</span>,
+  <span class="highlight-blue">"status"</span>: <span class="highlight-green">"customs"</span>,
+  <span class="highlight-blue">"order_date"</span>: <span class="highlight-green">"2025-07-01T00:00:00Z"</span>,
+  <span class="highlight-blue">"expected_delivery"</span>: <span class="highlight-green">"2025-07-20T00:00:00Z"</span>
+}</div>
+        </div>
+
+        <!-- INDEXES -->
+        <div class="section">
+            <div class="section-title">⚡ Recommended Indexes</div>
+            
+            <div class="code-block"><span class="highlight-purple">// MongoDB Index Commands</span>
+
+<span class="highlight-purple">// Users - Fast lookup by email and role</span>
+db.users.createIndex({ <span class="highlight-green">"email"</span>: <span class="highlight-orange">1</span> }, { unique: <span class="highlight-orange">true</span> })
+db.users.createIndex({ <span class="highlight-green">"role"</span>: <span class="highlight-orange">1</span> })
+
+<span class="highlight-purple">// Products - Fast search and category filter</span>
+db.products.createIndex({ <span class="highlight-green">"product_id"</span>: <span class="highlight-orange">1</span> }, { unique: <span class="highlight-orange">true</span> })
+db.products.createIndex({ <span class="highlight-green">"category"</span>: <span class="highlight-orange">1</span> })
+db.products.createIndex({ <span class="highlight-green">"name"</span>: <span class="highlight-green">"text"</span> })
+
+<span class="highlight-purple">// Orders - Fast user lookup and date sorting</span>
+db.orders.createIndex({ <span class="highlight-green">"user_id"</span>: <span class="highlight-orange">1</span>, <span class="highlight-green">"created_at"</span>: <span class="highlight-orange">-1</span> })
+db.orders.createIndex({ <span class="highlight-green">"status"</span>: <span class="highlight-orange">1</span> })
+
+<span class="highlight-purple">// Coupons - Fast code lookup</span>
+db.coupons.createIndex({ <span class="highlight-green">"code"</span>: <span class="highlight-orange">1</span> }, { unique: <span class="highlight-orange">true</span> })</div>
+        </div>
+
+        <div class="footer">
+            <p>📊 SnapAlign Guide 2: Database Schema</p>
+            <p>Version 1.0 | July 2025</p>
+        </div>
+    </div>
+</body>
+</html>

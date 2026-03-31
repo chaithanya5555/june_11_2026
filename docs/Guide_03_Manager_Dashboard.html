@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide 3: Manager Financial Dashboard - SnapAlign</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #000000;
+            color: #ffffff;
+            line-height: 1.6;
+        }
+        .page {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #000000;
+            min-height: 100vh;
+            padding: 30px;
+        }
+        .header {
+            background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2em; margin-bottom: 10px; }
+        .dashboard-container {
+            background: #111111;
+            border-radius: 20px;
+            padding: 25px;
+            margin: 20px 0;
+            border: 1px solid #222;
+        }
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #222;
+        }
+        .dashboard-title {
+            font-size: 1.3em;
+            color: #007AFF;
+        }
+        .status-badge {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        .status-live { background: #1a3d1a; color: #4ade80; }
+        .status-warning { background: #3d3a1a; color: #fbbf24; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #1a1a1a, #222);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid #333;
+        }
+        .stat-icon { font-size: 2em; margin-bottom: 10px; }
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #007AFF;
+        }
+        .stat-label {
+            color: #888;
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+        .stat-change {
+            font-size: 0.8em;
+            margin-top: 8px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            display: inline-block;
+        }
+        .change-positive { background: #1a3d1a; color: #4ade80; }
+        .change-negative { background: #3d1a1a; color: #f87171; }
+        .profit-monitor {
+            background: linear-gradient(135deg, #0a1a0a, #1a2a1a);
+            border: 2px solid #22c55e;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        .profit-monitor.warning {
+            background: linear-gradient(135deg, #1a1a0a, #2a2a1a);
+            border-color: #eab308;
+        }
+        .profit-monitor.danger {
+            background: linear-gradient(135deg, #1a0a0a, #2a1a1a);
+            border-color: #ef4444;
+        }
+        .profit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .profit-title {
+            font-size: 1.2em;
+            color: #22c55e;
+        }
+        .profit-monitor.warning .profit-title { color: #eab308; }
+        .profit-monitor.danger .profit-title { color: #ef4444; }
+        .profit-bars {
+            display: flex;
+            gap: 20px;
+        }
+        .profit-bar-item {
+            flex: 1;
+        }
+        .profit-bar-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+        .profit-bar-track {
+            height: 10px;
+            background: #333;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .profit-bar-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.3s;
+        }
+        .fill-green { background: linear-gradient(90deg, #22c55e, #4ade80); }
+        .fill-blue { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+        .fill-orange { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+        .orders-table {
+            background: #111;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .table-header {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr 1fr 1fr;
+            padding: 15px 20px;
+            background: #1a1a1a;
+            font-weight: bold;
+            color: #888;
+            font-size: 0.85em;
+        }
+        .table-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr 1fr 1fr;
+            padding: 15px 20px;
+            border-bottom: 1px solid #222;
+            align-items: center;
+        }
+        .table-row:hover { background: #1a1a1a; }
+        .order-status {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            text-align: center;
+        }
+        .status-pending { background: #3d3a1a; color: #fbbf24; }
+        .status-processing { background: #1a2a3d; color: #60a5fa; }
+        .status-shipped { background: #1a3d2a; color: #4ade80; }
+        .status-delivered { background: #1a3d1a; color: #22c55e; }
+        .employee-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .employee-card {
+            background: linear-gradient(135deg, #1a1a1a, #222);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border: 1px solid #333;
+        }
+        .employee-avatar {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #007AFF, #5856D6);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+        }
+        .employee-info h4 { margin-bottom: 5px; }
+        .employee-info p { color: #888; font-size: 0.85em; }
+        .employee-status {
+            margin-left: auto;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .status-online { background: #22c55e; box-shadow: 0 0 10px #22c55e; }
+        .status-offline { background: #666; }
+        .alert-box {
+            background: linear-gradient(135deg, #3d1a1a, #4d2a2a);
+            border: 2px solid #ef4444;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .alert-icon { font-size: 2.5em; }
+        .alert-content h3 { color: #ef4444; margin-bottom: 5px; }
+        .alert-content p { color: #f87171; font-size: 0.9em; }
+        .section-title {
+            font-size: 1.2em;
+            color: #007AFF;
+            margin: 30px 0 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .info-box {
+            background: #1a2a3d;
+            border: 1px solid #3b82f6;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .ui-annotation {
+            background: #007AFF;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.75em;
+            position: relative;
+            display: inline-block;
+            margin: 5px;
+        }
+        .ui-annotation::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 8px solid #007AFF;
+        }
+        .page-break { page-break-before: always; margin-top: 40px; }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            border-top: 1px solid #222;
+            margin-top: 40px;
+        }
+        @media print {
+            body { background: #000; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- HEADER -->
+        <div class="header">
+            <h1>📊 Guide 3: Manager Financial Dashboard</h1>
+            <p>Dark Mode UI Layout & Design Specifications</p>
+        </div>
+
+        <div class="info-box">
+            <strong>🧒 Simple Explanation:</strong> This is like the control center of your shop! 
+            You can see how much money you made, which orders need attention, and who's working right now.
+            Everything is in dark colors so it's easy on the eyes! 👀
+        </div>
+
+        <!-- MAIN DASHBOARD MOCKUP -->
+        <div class="dashboard-container">
+            <div class="dashboard-header">
+                <div>
+                    <div class="dashboard-title">📊 SnapAlign Manager Dashboard</div>
+                    <span style="color: #888; font-size: 0.9em;">Last updated: Just now</span>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <span class="status-badge status-live">🟢 All Systems Live</span>
+                </div>
+            </div>
+
+            <!-- STATS CARDS -->
+            <div class="ui-annotation">📍 Quick Stats - See important numbers at a glance!</div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-value">₹2,45,890</div>
+                    <div class="stat-label">Today's Revenue</div>
+                    <span class="stat-change change-positive">↑ 12.5%</span>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📦</div>
+                    <div class="stat-value">47</div>
+                    <div class="stat-label">Pending Orders</div>
+                    <span class="stat-change change-negative">↑ 8 new</span>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-value">5</div>
+                    <div class="stat-label">Active Employees</div>
+                    <span class="stat-change change-positive">All online</span>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-value">₹68,420</div>
+                    <div class="stat-label">Net Profit Today</div>
+                    <span class="stat-change change-positive">↑ 15.2%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- PROFIT MONITOR -->
+        <div class="section-title">💹 Profit/Loss Monitor</div>
+        <div class="ui-annotation">📍 Real-time profit tracking - Green = Good, Red = Bad!</div>
+        
+        <div class="profit-monitor">
+            <div class="profit-header">
+                <div class="profit-title">✅ Profit Status: HEALTHY</div>
+                <span style="color: #4ade80;">All margins above minimum threshold</span>
+            </div>
+            <div class="profit-bars">
+                <div class="profit-bar-item">
+                    <div class="profit-bar-label">
+                        <span>Gross Margin</span>
+                        <span style="color: #4ade80;">68%</span>
+                    </div>
+                    <div class="profit-bar-track">
+                        <div class="profit-bar-fill fill-green" style="width: 68%;"></div>
+                    </div>
+                </div>
+                <div class="profit-bar-item">
+                    <div class="profit-bar-label">
+                        <span>Net Margin (After Fees)</span>
+                        <span style="color: #60a5fa;">42%</span>
+                    </div>
+                    <div class="profit-bar-track">
+                        <div class="profit-bar-fill fill-blue" style="width: 42%;"></div>
+                    </div>
+                </div>
+                <div class="profit-bar-item">
+                    <div class="profit-bar-label">
+                        <span>Avg Order Value</span>
+                        <span style="color: #fbbf24;">₹1,240</span>
+                    </div>
+                    <div class="profit-bar-track">
+                        <div class="profit-bar-fill fill-orange" style="width: 75%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DANGER ALERT EXAMPLE -->
+        <div class="ui-annotation">📍 This alert shows when a coupon would cause LOSS!</div>
+        <div class="alert-box">
+            <div class="alert-icon">🚨</div>
+            <div class="alert-content">
+                <h3>PROFIT GUARDRAIL ALERT</h3>
+                <p>Coupon "MEGA50" on product "iPhone Case" would result in ₹23 LOSS per sale!</p>
+                <p style="margin-top: 10px; color: #888;">Selling Price (₹499) - Coupon (₹250) = ₹249 < Landed Cost (₹272)</p>
+            </div>
+            <button style="background: #ef4444; border: none; color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; margin-left: auto;">Block Coupon</button>
+        </div>
+
+        <!-- PENDING ORDERS -->
+        <div class="section-title page-break">📦 Pending Orders</div>
+        <div class="ui-annotation">📍 Orders waiting to be processed - Click to view details!</div>
+        
+        <div class="orders-table">
+            <div class="table-header">
+                <span>Order ID</span>
+                <span>Customer</span>
+                <span>Amount</span>
+                <span>Status</span>
+                <span>Time</span>
+            </div>
+            <div class="table-row">
+                <span style="color: #007AFF;">#ORD-2847</span>
+                <span>Rahul Sharma</span>
+                <span>₹2,499</span>
+                <span class="order-status status-pending">⏳ Pending</span>
+                <span style="color: #888;">2 min ago</span>
+            </div>
+            <div class="table-row">
+                <span style="color: #007AFF;">#ORD-2846</span>
+                <span>Priya Patel</span>
+                <span>₹1,899</span>
+                <span class="order-status status-processing">📦 Processing</span>
+                <span style="color: #888;">15 min ago</span>
+            </div>
+            <div class="table-row">
+                <span style="color: #007AFF;">#ORD-2845</span>
+                <span>Amit Kumar</span>
+                <span>₹3,299</span>
+                <span class="order-status status-processing">📦 Processing</span>
+                <span style="color: #888;">28 min ago</span>
+            </div>
+            <div class="table-row">
+                <span style="color: #007AFF;">#ORD-2844</span>
+                <span>Sneha Gupta</span>
+                <span>₹749</span>
+                <span class="order-status status-shipped">🚚 Shipped</span>
+                <span style="color: #888;">1 hour ago</span>
+            </div>
+            <div class="table-row">
+                <span style="color: #007AFF;">#ORD-2843</span>
+                <span>Vikram Singh</span>
+                <span>₹4,199</span>
+                <span class="order-status status-delivered">✅ Delivered</span>
+                <span style="color: #888;">3 hours ago</span>
+            </div>
+        </div>
+
+        <!-- ACTIVE EMPLOYEES -->
+        <div class="section-title">👥 Active Employees</div>
+        <div class="ui-annotation">📍 See who's working right now - Green dot = Online!</div>
+        
+        <div class="employee-grid">
+            <div class="employee-card">
+                <div class="employee-avatar">👨</div>
+                <div class="employee-info">
+                    <h4>Rahul Kumar</h4>
+                    <p>Warehouse - Packing</p>
+                </div>
+                <div class="employee-status status-online"></div>
+            </div>
+            <div class="employee-card">
+                <div class="employee-avatar">👩</div>
+                <div class="employee-info">
+                    <h4>Priya Sharma</h4>
+                    <p>Warehouse - Scanning</p>
+                </div>
+                <div class="employee-status status-online"></div>
+            </div>
+            <div class="employee-card">
+                <div class="employee-avatar">👨</div>
+                <div class="employee-info">
+                    <h4>Amit Patel</h4>
+                    <p>Warehouse - Inventory</p>
+                </div>
+                <div class="employee-status status-online"></div>
+            </div>
+            <div class="employee-card">
+                <div class="employee-avatar">👩</div>
+                <div class="employee-info">
+                    <h4>Sneha Gupta</h4>
+                    <p>Customer Support</p>
+                </div>
+                <div class="employee-status status-online"></div>
+            </div>
+            <div class="employee-card">
+                <div class="employee-avatar">👨</div>
+                <div class="employee-info">
+                    <h4>Vikram Singh</h4>
+                    <p>Delivery Coordinator</p>
+                </div>
+                <div class="employee-status status-online"></div>
+            </div>
+            <div class="employee-card">
+                <div class="employee-avatar">👩</div>
+                <div class="employee-info">
+                    <h4>Anita Verma</h4>
+                    <p>Warehouse - Returns</p>
+                </div>
+                <div class="employee-status status-offline"></div>
+            </div>
+        </div>
+
+        <!-- FINANCIAL SUMMARY -->
+        <div class="section-title page-break">💰 Financial Summary</div>
+        
+        <div class="dashboard-container">
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr style="background: #1a1a1a;">
+                    <th style="padding: 15px; text-align: left; color: #888;">Metric</th>
+                    <th style="padding: 15px; text-align: right; color: #888;">Today</th>
+                    <th style="padding: 15px; text-align: right; color: #888;">This Week</th>
+                    <th style="padding: 15px; text-align: right; color: #888;">This Month</th>
+                </tr>
+                <tr style="border-bottom: 1px solid #222;">
+                    <td style="padding: 15px;">💵 Gross Revenue</td>
+                    <td style="padding: 15px; text-align: right; color: #4ade80;">₹2,45,890</td>
+                    <td style="padding: 15px; text-align: right; color: #4ade80;">₹14,52,340</td>
+                    <td style="padding: 15px; text-align: right; color: #4ade80;">₹58,34,210</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #222;">
+                    <td style="padding: 15px;">📦 Landed Cost (COGS)</td>
+                    <td style="padding: 15px; text-align: right; color: #f87171;">-₹78,450</td>
+                    <td style="padding: 15px; text-align: right; color: #f87171;">-₹4,65,230</td>
+                    <td style="padding: 15px; text-align: right; color: #f87171;">-₹18,67,890</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #222;">
+                    <td style="padding: 15px;">💳 Payment Fees (2%)</td>
+                    <td style="padding: 15px; text-align: right; color: #fbbf24;">-₹4,918</td>
+                    <td style="padding: 15px; text-align: right; color: #fbbf24;">-₹29,047</td>
+                    <td style="padding: 15px; text-align: right; color: #fbbf24;">-₹1,16,684</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #222;">
+                    <td style="padding: 15px;">🎟️ Coupon Discounts</td>
+                    <td style="padding: 15px; text-align: right; color: #fbbf24;">-₹12,340</td>
+                    <td style="padding: 15px; text-align: right; color: #fbbf24;">-₹78,560</td>
+                    <td style="padding: 15px; text-align: right; color: #fbbf24;">-₹3,12,450</td>
+                </tr>
+                <tr style="background: #1a2a1a;">
+                    <td style="padding: 15px; font-weight: bold;">📈 Net Profit</td>
+                    <td style="padding: 15px; text-align: right; color: #22c55e; font-weight: bold; font-size: 1.2em;">₹1,50,182</td>
+                    <td style="padding: 15px; text-align: right; color: #22c55e; font-weight: bold; font-size: 1.2em;">₹8,79,503</td>
+                    <td style="padding: 15px; text-align: right; color: #22c55e; font-weight: bold; font-size: 1.2em;">₹35,37,186</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- COLOR SCHEME -->
+        <div class="section-title">🎨 Design Specifications</div>
+        
+        <div class="dashboard-container">
+            <h4 style="margin-bottom: 15px;">Color Palette (Dark Mode)</h4>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div style="text-align: center;">
+                    <div style="width: 60px; height: 60px; background: #000000; border-radius: 10px; border: 1px solid #333;"></div>
+                    <p style="font-size: 0.8em; margin-top: 5px;">#000000<br>Background</p>
+                </div>
+                <div style="text-align: center;">
+                    <div style="width: 60px; height: 60px; background: #111111; border-radius: 10px; border: 1px solid #333;"></div>
+                    <p style="font-size: 0.8em; margin-top: 5px;">#111111<br>Cards</p>
+                </div>
+                <div style="text-align: center;">
+                    <div style="width: 60px; height: 60px; background: #007AFF; border-radius: 10px;"></div>
+                    <p style="font-size: 0.8em; margin-top: 5px;">#007AFF<br>Accent</p>
+                </div>
+                <div style="text-align: center;">
+                    <div style="width: 60px; height: 60px; background: #22c55e; border-radius: 10px;"></div>
+                    <p style="font-size: 0.8em; margin-top: 5px;">#22c55e<br>Success</p>
+                </div>
+                <div style="text-align: center;">
+                    <div style="width: 60px; height: 60px; background: #ef4444; border-radius: 10px;"></div>
+                    <p style="font-size: 0.8em; margin-top: 5px;">#ef4444<br>Danger</p>
+                </div>
+                <div style="text-align: center;">
+                    <div style="width: 60px; height: 60px; background: #fbbf24; border-radius: 10px;"></div>
+                    <p style="font-size: 0.8em; margin-top: 5px;">#fbbf24<br>Warning</p>
+                </div>
+            </div>
+
+            <h4 style="margin: 25px 0 15px 0;">Typography</h4>
+            <table style="width: 100%;">
+                <tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #333;">Font Family</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #333;"><code>Outfit, DM Sans, system-ui</code></td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #333;">Headings</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #333;"><code>Outfit, 600 weight</code></td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #333;">Body Text</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #333;"><code>DM Sans, 400 weight</code></td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px;">Numbers/Stats</td>
+                    <td style="padding: 10px;"><code>Outfit, 700 weight</code></td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="footer">
+            <p>📊 SnapAlign Guide 3: Manager Financial Dashboard</p>
+            <p>Version 1.0 | July 2025</p>
+        </div>
+    </div>
+</body>
+</html>
