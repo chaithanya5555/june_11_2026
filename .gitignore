@@ -83,12 +83,5 @@ android-sdk/frontend/node_modules/.cache/default-development/3.pack
 frontend/node_modules/.cache/default-development/3.pack
 -e 
 # Environment files are needed for Emergent deployment
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
+# NOTE: .env files are NOT blocked - they are required for deployment
 frontend/node_modules/.cache/default-development/0.pack
