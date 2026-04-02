@@ -28,6 +28,11 @@ RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', 'rzp_test_DEMO_MODE')
 RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', 'DEMO_SECRET_REPLACE_ME')
 PAYMENT_FEE_PERCENT = 2.0
 
+# Manual UPI Payment Settings (default values)
+UPI_ID = os.environ.get('UPI_ID', 'paytmqr5ga0is@ptys')
+UPI_QR_URL = os.environ.get('UPI_QR_URL', 'https://customer-assets.emergentagent.com/job_align-snap-test/artifacts/hnj7teu3_paytm%20qr.pdf')
+UPI_NAME = os.environ.get('UPI_NAME', 'M UMARANI')
+
 import razorpay
 import hashlib
 import hmac
@@ -116,6 +121,9 @@ class SettingsUpdateRequest(BaseModel):
     razorpay_key_secret: Optional[str] = None
     admin_password: Optional[str] = None
     whatsapp_number: Optional[str] = None
+    upi_id: Optional[str] = None
+    upi_qr_url: Optional[str] = None
+    upi_name: Optional[str] = None
 
 class OrderStatusUpdate(BaseModel):
     status: Optional[str] = None
@@ -127,6 +135,14 @@ class AdminLoginRequest(BaseModel):
 
 class TrackRequest(BaseModel):
     order_id: str
+
+class ManualPaymentRequest(BaseModel):
+    utr: str
+    order_id: str
+
+class UTRVerifyRequest(BaseModel):
+    order_id: str
+    action: str  # "approve" or "reject"
 
 class CouponCreate(BaseModel):
     code: str
@@ -698,6 +714,192 @@ async def demo_complete_payment(request: Request):
     await _post_payment_success(order_id, demo_payment_id, payment_method)
     return {"status": "success", "message": "Demo payment completed", "order_id": order_id, "payment_id": demo_payment_id}
 
+# ── Manual UPI Payment System ──
+@api_router.get("/payment/upi-config")
+async def get_upi_config():
+    """Get UPI payment configuration for manual payment"""
+    settings = await db.admin_settings.find_one({"setting_id": "global"}, {"_id": 0})
+    return {
+        "upi_id": settings.get("upi_id", UPI_ID) if settings else UPI_ID,
+        "upi_qr_url": settings.get("upi_qr_url", UPI_QR_URL) if settings else UPI_QR_URL,
+        "upi_name": settings.get("upi_name", UPI_NAME) if settings else UPI_NAME,
+        "whatsapp_number": settings.get("whatsapp_number", "") if settings else "",
+    }
+
+@api_router.post("/payment/manual-upi/create-order")
+async def create_manual_upi_order(req: CheckoutRequest, request: Request):
+    """Create order for manual UPI payment (no gateway, just QR code)"""
+    user = await get_current_user(request)
+    cart_items = await db.cart_items.find({"user_id": user["user_id"]}, {"_id": 0}).to_list(100)
+    if not cart_items:
+        raise HTTPException(status_code=400, detail="Cart is empty")
+    
+    total = 0.0
+    order_items = []
+    for ci in cart_items:
+        product = await db.products.find_one({"product_id": ci["product_id"]}, {"_id": 0})
+        if product:
+            price = product["price"]
+            if ci.get("variant_id") and product.get("variants"):
+                variant = next((v for v in product["variants"] if v.get("variant_id") == ci["variant_id"]), None)
+                if variant:
+                    price = price + variant.get("price_modifier", 0)
+            item_total = price * ci["quantity"]
+            total += item_total
+            item_data = {"product_id": product["product_id"], "name": product["name"], "price": price, "quantity": ci["quantity"], "image": product.get("image", "")}
+            if ci.get("variant_id"):
+                item_data["variant_id"] = ci["variant_id"]
+            order_items.append(item_data)
+    
+    shipping = 0 if total >= 500 else 49
+    coupon_result = await _apply_coupon(req.coupon_code, total)
+    discount = coupon_result["discount"]
+    grand_total = round(total + shipping - discount, 2)
+    if grand_total < 0:
+        grand_total = 0
+    
+    order_id = f"ORD-{uuid.uuid4().hex[:8].upper()}"
+    order_doc = {
+        "order_id": order_id, 
+        "user_id": user["user_id"], 
+        "items": order_items,
+        "subtotal": round(total, 2), 
+        "shipping": shipping, 
+        "discount": discount,
+        "total": grand_total, 
+        "status": "awaiting_utr",  # New status for manual payment
+        "tracking_number": "",
+        "payment_method": "manual_upi",
+        "customer_name": user.get("name", ""), 
+        "customer_email": user.get("email", ""),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    if coupon_result["coupon_code"]:
+        order_doc["coupon_code"] = coupon_result["coupon_code"]
+    await db.orders.insert_one(order_doc)
+    
+    # Get UPI config
+    settings = await db.admin_settings.find_one({"setting_id": "global"}, {"_id": 0})
+    
+    return {
+        "order_id": order_id,
+        "amount": grand_total,
+        "upi_id": settings.get("upi_id", UPI_ID) if settings else UPI_ID,
+        "upi_qr_url": settings.get("upi_qr_url", UPI_QR_URL) if settings else UPI_QR_URL,
+        "upi_name": settings.get("upi_name", UPI_NAME) if settings else UPI_NAME,
+    }
+
+@api_router.post("/payment/manual-upi/submit-utr")
+async def submit_utr(req: ManualPaymentRequest, request: Request):
+    """Customer submits UTR after making UPI payment"""
+    user = await get_current_user(request)
+    
+    # Validate UTR format (typically 12 digits)
+    if not req.utr or len(req.utr) < 6:
+        raise HTTPException(status_code=400, detail="Invalid UTR number")
+    
+    # Find the order
+    order = await db.orders.find_one({"order_id": req.order_id, "user_id": user["user_id"]}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    if order["status"] not in ["awaiting_utr", "pending_payment"]:
+        raise HTTPException(status_code=400, detail="Order is not awaiting payment")
+    
+    # Update order with UTR
+    await db.orders.update_one(
+        {"order_id": req.order_id},
+        {"$set": {
+            "status": "payment_verification",
+            "utr": req.utr,
+            "utr_submitted_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Create payment transaction record
+    await db.payment_transactions.insert_one({
+        "transaction_id": f"txn_manual_{uuid.uuid4().hex[:12]}",
+        "order_id": req.order_id,
+        "user_id": user["user_id"],
+        "amount": order["total"],
+        "utr": req.utr,
+        "payment_method": "manual_upi",
+        "payment_status": "pending_verification",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "status": "success",
+        "message": "Payment under verification. Order will be confirmed within 1 hour.",
+        "order_id": req.order_id
+    }
+
+@api_router.get("/admin/pending-utr")
+async def get_pending_utr_orders(request: Request):
+    """Admin: Get all orders pending UTR verification"""
+    await require_admin(request)
+    orders = await db.orders.find(
+        {"status": "payment_verification"},
+        {"_id": 0}
+    ).sort("utr_submitted_at", -1).to_list(100)
+    return orders
+
+@api_router.post("/admin/verify-utr")
+async def verify_utr(req: UTRVerifyRequest, request: Request):
+    """Admin: Approve or reject UTR payment"""
+    await require_admin(request)
+    
+    order = await db.orders.find_one({"order_id": req.order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    if order["status"] != "payment_verification":
+        raise HTTPException(status_code=400, detail="Order is not pending verification")
+    
+    if req.action == "approve":
+        # Approve payment - process order
+        payment_id = f"pay_MANUAL_{uuid.uuid4().hex[:12]}"
+        await db.orders.update_one(
+            {"order_id": req.order_id},
+            {"$set": {
+                "status": "confirmed",
+                "payment_verified_at": datetime.now(timezone.utc).isoformat(),
+                "paid_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        await db.payment_transactions.update_one(
+            {"order_id": req.order_id, "payment_method": "manual_upi"},
+            {"$set": {"payment_status": "paid", "payment_id": payment_id}}
+        )
+        
+        # Deduct stock
+        for item in order.get("items", []):
+            await db.products.update_one(
+                {"product_id": item["product_id"]},
+                {"$inc": {"stock": -item["quantity"]}}
+            )
+        
+        # Clear cart for user
+        await db.cart_items.delete_many({"user_id": order["user_id"]})
+        
+        return {"status": "success", "message": "Payment verified and order confirmed", "order_id": req.order_id}
+    
+    elif req.action == "reject":
+        await db.orders.update_one(
+            {"order_id": req.order_id},
+            {"$set": {
+                "status": "payment_rejected",
+                "payment_rejected_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        await db.payment_transactions.update_one(
+            {"order_id": req.order_id, "payment_method": "manual_upi"},
+            {"$set": {"payment_status": "rejected"}}
+        )
+        return {"status": "success", "message": "Payment rejected", "order_id": req.order_id}
+    
+    raise HTTPException(status_code=400, detail="Invalid action")
+
 # ── Orders (Customer) ──
 @api_router.get("/orders")
 async def get_orders(request: Request):
@@ -937,7 +1139,7 @@ async def admin_delete_user(admin_user_id: str, request: Request):
         raise HTTPException(status_code=404, detail="Admin user not found")
     return {"message": "Admin user deleted"}
 
-# ── Admin Settings (Key Management + WhatsApp) ──
+# ── Admin Settings (Key Management + WhatsApp + UPI) ──
 @api_router.get("/admin/settings")
 async def admin_get_settings(request: Request):
     await require_admin(request)
@@ -948,6 +1150,9 @@ async def admin_get_settings(request: Request):
         "demo_mode": is_demo_mode(),
         "payment_fee_percent": PAYMENT_FEE_PERCENT,
         "whatsapp_number": extra.get("whatsapp_number", "") if extra else "",
+        "upi_id": extra.get("upi_id", UPI_ID) if extra else UPI_ID,
+        "upi_qr_url": extra.get("upi_qr_url", UPI_QR_URL) if extra else UPI_QR_URL,
+        "upi_name": extra.get("upi_name", UPI_NAME) if extra else UPI_NAME,
     }
 
 @api_router.put("/admin/settings")
@@ -973,13 +1178,29 @@ async def admin_update_settings(req: SettingsUpdateRequest, request: Request):
         env_content = env_content.replace(f"ADMIN_PASSWORD={old_val}", f"ADMIN_PASSWORD={req.admin_password}")
         updated.append("admin_password")
     env_path.write_text(env_content)
+    
+    # Update database settings (WhatsApp + UPI)
+    db_updates = {"updated_at": datetime.now(timezone.utc).isoformat()}
     if req.whatsapp_number is not None:
+        db_updates["whatsapp_number"] = req.whatsapp_number
+        updated.append("whatsapp_number")
+    if req.upi_id is not None:
+        db_updates["upi_id"] = req.upi_id
+        updated.append("upi_id")
+    if req.upi_qr_url is not None:
+        db_updates["upi_qr_url"] = req.upi_qr_url
+        updated.append("upi_qr_url")
+    if req.upi_name is not None:
+        db_updates["upi_name"] = req.upi_name
+        updated.append("upi_name")
+    
+    if len(db_updates) > 1:  # More than just updated_at
         await db.admin_settings.update_one(
             {"setting_id": "global"},
-            {"$set": {"whatsapp_number": req.whatsapp_number, "updated_at": datetime.now(timezone.utc).isoformat()}},
+            {"$set": db_updates},
             upsert=True
         )
-        updated.append("whatsapp_number")
+    
     return {"message": f"Updated: {', '.join(updated)}", "demo_mode": is_demo_mode()}
 
 @api_router.get("/admin/whatsapp-config")

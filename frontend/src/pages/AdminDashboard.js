@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CurrencyDollar, Package, Cube, Users, Warning, DownloadSimple, Pencil, Trash, Plus, MagnifyingGlass, MapPin, SignOut, Gear, Lightning, Eye, EyeSlash, Tag, ChartLineUp, UserCircle, WhatsappLogo } from '@phosphor-icons/react';
+import { CurrencyDollar, Package, Cube, Users, Warning, DownloadSimple, Pencil, Trash, Plus, MagnifyingGlass, MapPin, SignOut, Gear, Lightning, Eye, EyeSlash, Tag, ChartLineUp, UserCircle, WhatsappLogo, QrCode, Check, X, Clock } from '@phosphor-icons/react';
 import axios from 'axios';
 import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
@@ -37,7 +37,7 @@ export default function AdminDashboard() {
   const [productForm, setProductForm] = useState({ name: '', description: '', price: '', cost_price: '', compare_at_price: '', category: 'Cases', image: '', stock: '100', bin_location: '', featured: false });
   const [editingProduct, setEditingProduct] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [settingsForm, setSettingsForm] = useState({ razorpay_key_id: '', razorpay_key_secret: '', admin_password: '', whatsapp_number: '' });
+  const [settingsForm, setSettingsForm] = useState({ razorpay_key_id: '', razorpay_key_secret: '', admin_password: '', whatsapp_number: '', upi_id: '', upi_qr_url: '', upi_name: '' });
   const [showSecret, setShowSecret] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [couponDialog, setCouponDialog] = useState(false);
@@ -45,6 +45,8 @@ export default function AdminDashboard() {
   const [editingCoupon, setEditingCoupon] = useState(null);
   const [newUserDialog, setNewUserDialog] = useState(false);
   const [newUserForm, setNewUserForm] = useState({ email: '', name: '', password: '', role: 'warehouse_manager' });
+  const [pendingUTR, setPendingUTR] = useState([]);
+  const [processingUTR, setProcessingUTR] = useState({});
 
   const isOwner = adminRole === 'owner';
 
@@ -104,11 +106,19 @@ export default function AdminDashboard() {
           razorpay_key_id: results[4].data.razorpay_key_id || '',
           razorpay_key_secret: '',
           admin_password: '',
-          whatsapp_number: results[4].data.whatsapp_number || ''
+          whatsapp_number: results[4].data.whatsapp_number || '',
+          upi_id: results[4].data.upi_id || '',
+          upi_qr_url: results[4].data.upi_qr_url || '',
+          upi_name: results[4].data.upi_name || ''
         });
         setCoupons(results[5].data);
         setAnalytics(results[6].data);
         setAdminUsers(results[7].data);
+        // Fetch pending UTR orders
+        try {
+          const utrRes = await axios.get(`${API}/admin/pending-utr`, { withCredentials: true });
+          setPendingUTR(utrRes.data);
+        } catch (e) { console.error('Failed to fetch pending UTR', e); }
       }
     } catch (err) { console.error(err); }
     setLoading(false);
@@ -116,6 +126,18 @@ export default function AdminDashboard() {
 
   const updateOrderStatus = async (id, status) => {
     try { await axios.put(`${API}/admin/orders/${id}`, { status }, { withCredentials: true }); toast.success('Updated'); fetchData(adminRole); } catch { toast.error('Failed'); }
+  };
+
+  const handleVerifyUTR = async (orderId, action) => {
+    setProcessingUTR(p => ({ ...p, [orderId]: true }));
+    try {
+      await axios.post(`${API}/admin/verify-utr`, { order_id: orderId, action }, { withCredentials: true });
+      toast.success(action === 'approve' ? 'Payment verified! Order confirmed.' : 'Payment rejected.');
+      fetchData(adminRole);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Failed to process');
+    }
+    setProcessingUTR(p => ({ ...p, [orderId]: false }));
   };
 
   const saveTracking = async (id) => {
@@ -202,6 +224,9 @@ export default function AdminDashboard() {
     if (settingsForm.razorpay_key_secret) payload.razorpay_key_secret = settingsForm.razorpay_key_secret;
     if (settingsForm.admin_password) payload.admin_password = settingsForm.admin_password;
     if (settingsForm.whatsapp_number !== (settings?.whatsapp_number || '')) payload.whatsapp_number = settingsForm.whatsapp_number;
+    if (settingsForm.upi_id !== (settings?.upi_id || '')) payload.upi_id = settingsForm.upi_id;
+    if (settingsForm.upi_qr_url !== (settings?.upi_qr_url || '')) payload.upi_qr_url = settingsForm.upi_qr_url;
+    if (settingsForm.upi_name !== (settings?.upi_name || '')) payload.upi_name = settingsForm.upi_name;
     if (Object.keys(payload).length === 0) { toast.info('No changes to save'); setSavingSettings(false); return; }
     try {
       const res = await axios.put(`${API}/admin/settings`, payload, { withCredentials: true });
@@ -271,8 +296,9 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        <Tabs defaultValue={isOwner ? "orders" : "warehouse"} className="w-full">
+        <Tabs defaultValue={isOwner ? "payments" : "warehouse"} className="w-full">
           <TabsList className="mb-4 bg-[#0A0A0A] border border-white/10 flex-wrap h-auto gap-0.5 p-1">
+            {isOwner && <TabsTrigger data-testid="admin-payments-tab" value="payments" className="text-xs"><Clock size={12} className="mr-1" />Pending Payments {pendingUTR.length > 0 && <span className="ml-1 bg-amber-500 text-black text-[10px] px-1.5 py-0.5 rounded-full">{pendingUTR.length}</span>}</TabsTrigger>}
             {isOwner && <TabsTrigger data-testid="admin-orders-tab" value="orders" className="text-xs">Orders</TabsTrigger>}
             <TabsTrigger data-testid="admin-products-tab" value="products" className="text-xs">Products</TabsTrigger>
             <TabsTrigger data-testid="admin-warehouse-tab" value="warehouse" className="text-xs">Warehouse</TabsTrigger>
@@ -282,6 +308,84 @@ export default function AdminDashboard() {
             {isOwner && <TabsTrigger data-testid="admin-team-tab" value="team" className="text-xs"><UserCircle size={12} className="mr-1" />Team</TabsTrigger>}
             {isOwner && <TabsTrigger data-testid="admin-settings-tab" value="settings" className="text-xs"><Gear size={12} className="mr-1" />Settings</TabsTrigger>}
           </TabsList>
+
+          {/* PENDING UTR PAYMENTS (Owner only) */}
+          {isOwner && (
+            <TabsContent value="payments">
+              <div className="bg-[#0A0A0A] border border-white/10 rounded-xl p-4 mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock size={18} className="text-amber-400" />
+                  <h3 className="text-sm font-medium text-white">Pending Payment Verifications</h3>
+                </div>
+                <p className="text-xs text-white/40">Customers have paid via UPI and entered their UTR. Verify each payment before confirming the order.</p>
+              </div>
+              
+              <div className="bg-[#0A0A0A] border border-white/10 rounded-xl overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-white/10">
+                      <TableHead className="text-white/40 text-[10px]">Order ID</TableHead>
+                      <TableHead className="text-white/40 text-[10px]">Customer</TableHead>
+                      <TableHead className="text-white/40 text-[10px]">Amount</TableHead>
+                      <TableHead className="text-white/40 text-[10px]">UTR Number</TableHead>
+                      <TableHead className="text-white/40 text-[10px]">Submitted</TableHead>
+                      <TableHead className="text-white/40 text-[10px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingUTR.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-white/30 py-8 text-sm">
+                          No pending verifications 🎉
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {pendingUTR.map(order => (
+                      <TableRow key={order.order_id} data-testid={`pending-utr-${order.order_id}`} className="border-white/5">
+                        <TableCell className="text-xs font-mono text-[#007AFF]">{order.order_id}</TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="text-xs text-white">{order.customer_name || 'N/A'}</p>
+                            <p className="text-[10px] text-white/40">{order.customer_email}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm font-medium text-white">₹{order.total?.toLocaleString('en-IN')}</TableCell>
+                        <TableCell>
+                          <code className="text-xs font-mono bg-amber-500/20 text-amber-400 px-2 py-1 rounded">{order.utr}</code>
+                        </TableCell>
+                        <TableCell className="text-[10px] text-white/40">
+                          {order.utr_submitted_at ? new Date(order.utr_submitted_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              data-testid={`approve-utr-${order.order_id}`}
+                              onClick={() => handleVerifyUTR(order.order_id, 'approve')}
+                              disabled={processingUTR[order.order_id]}
+                              size="sm"
+                              className="h-7 px-3 bg-green-500 hover:bg-green-600 text-white text-[10px] rounded"
+                            >
+                              <Check size={12} className="mr-1" /> Approve
+                            </Button>
+                            <Button
+                              data-testid={`reject-utr-${order.order_id}`}
+                              onClick={() => handleVerifyUTR(order.order_id, 'reject')}
+                              disabled={processingUTR[order.order_id]}
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-3 border-red-500/50 text-red-400 hover:bg-red-500/10 text-[10px] rounded"
+                            >
+                              <X size={12} className="mr-1" /> Reject
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+          )}
 
           {/* ORDERS (Owner only) */}
           {isOwner && (
@@ -592,8 +696,32 @@ export default function AdminDashboard() {
           {isOwner && (
             <TabsContent value="settings">
               <div className="max-w-xl space-y-6">
+                {/* UPI Payment Settings */}
                 <div className="bg-[#0A0A0A] border border-white/10 rounded-xl p-6">
-                  <h3 className="text-base font-medium text-white mb-4 flex items-center gap-2" style={{ fontFamily: 'var(--font-heading)' }}><Gear size={16} className="text-[#007AFF]" /> Payment Gateway Keys</h3>
+                  <h3 className="text-base font-medium text-white mb-4 flex items-center gap-2" style={{ fontFamily: 'var(--font-heading)' }}><QrCode size={16} className="text-[#007AFF]" /> UPI Payment Settings</h3>
+                  <div className="mb-4 px-3 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-400">
+                    <strong>Manual Payment Mode</strong> — Customers scan QR and enter UTR for verification.
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-white/60 text-xs">UPI ID</Label>
+                      <Input data-testid="settings-upi-id" value={settingsForm.upi_id} onChange={e => setSettingsForm(f => ({...f, upi_id: e.target.value}))} placeholder="yourname@upi" className="bg-white/5 border-white/10 text-white rounded-lg font-mono text-xs" />
+                      <p className="text-[10px] text-white/20 mt-1">e.g., paytm@bank, phonepay@ybl</p>
+                    </div>
+                    <div>
+                      <Label className="text-white/60 text-xs">UPI Name (Payee Name)</Label>
+                      <Input data-testid="settings-upi-name" value={settingsForm.upi_name} onChange={e => setSettingsForm(f => ({...f, upi_name: e.target.value}))} placeholder="Your Business Name" className="bg-white/5 border-white/10 text-white rounded-lg text-xs" />
+                    </div>
+                    <div>
+                      <Label className="text-white/60 text-xs">QR Code URL</Label>
+                      <Input data-testid="settings-upi-qr" value={settingsForm.upi_qr_url} onChange={e => setSettingsForm(f => ({...f, upi_qr_url: e.target.value}))} placeholder="https://..." className="bg-white/5 border-white/10 text-white rounded-lg text-xs" />
+                      <p className="text-[10px] text-white/20 mt-1">Upload QR image and paste the URL here</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-[#0A0A0A] border border-white/10 rounded-xl p-6">
+                  <h3 className="text-base font-medium text-white mb-4 flex items-center gap-2" style={{ fontFamily: 'var(--font-heading)' }}><Gear size={16} className="text-[#007AFF]" /> Payment Gateway Keys (Optional)</h3>
                   {settings?.demo_mode && (
                     <div className="mb-4 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-400 flex items-center gap-2">
                       <Lightning size={14} /> <span><strong>Demo Mode Active</strong> -- Replace keys below with your real Razorpay test keys to enable live payments.</span>
