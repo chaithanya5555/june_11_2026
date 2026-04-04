@@ -91,6 +91,7 @@ async def seed_products():
                     
                     product = {
                         "id": str(uuid.uuid4()),
+                        "product_id": str(uuid.uuid4()),  # Add product_id for compatibility
                         "name": generate_seo_optimized_name(brand, model, category, subcategory),
                         "description": generate_product_description(brand, model, category, subcategory),
                         "price": price_min + 50,  # Slightly above minimum
@@ -100,16 +101,18 @@ async def seed_products():
                         "subcategory": subcategory,
                         "brand": brand,
                         "device_model": model,
-                        "image": f"/images/products/{category.lower().replace(' ', '_')}_{brand.lower()}_{model.lower().replace(' ', '_')}.jpg",
+                        "image": f"https://placehold.co/400x500/1a1a1a/007AFF?text={subcategory.replace(' ', '+')}+{brand}+{model.replace(' ', '+')}",
                         "images": [
-                            f"/images/products/{category.lower().replace(' ', '_')}_{brand.lower()}_{model.lower().replace(' ', '_')}_1.jpg",
-                            f"/images/products/{category.lower().replace(' ', '_')}_{brand.lower()}_{model.lower().replace(' ', '_')}_2.jpg",
+                            f"https://placehold.co/400x500/1a1a1a/007AFF?text={subcategory.replace(' ', '+')}+{brand}+{model.replace(' ', '+')}+1",
+                            f"https://placehold.co/400x500/1a1a1a/007AFF?text={subcategory.replace(' ', '+')}+{brand}+{model.replace(' ', '+')}+2",
                         ],
                         "stock": 50,
                         "featured": product_count < 12,  # First 12 are featured
                         "bin_location": f"A{(product_count % 10) + 1}",
                         "rating": 4.5,
+                        "avg_rating": 4.5,  # Add for compatibility
                         "reviews_count": 127,
+                        "review_count": 127,  # Add for compatibility
                         "seo_keywords": f"{subcategory}, {brand} {model}, {category}, SnapAlign, screen protection, phone accessories",
                         "created_at": datetime.now(timezone.utc).isoformat(),
                         "updated_at": datetime.now(timezone.utc).isoformat()
@@ -131,8 +134,9 @@ async def seed_products():
     # Insert products into MongoDB
     print(f"📦 Inserting {len(products)} products into database...")
     
-    # Clear existing products (optional - uncomment if you want fresh start)
-    # await db.products.delete_many({})
+    # Clear existing products for fresh start
+    deleted = await db.products.delete_many({})
+    print(f"🗑️  Cleared {deleted.deleted_count} existing products")
     
     result = await db.products.insert_many(products)
     

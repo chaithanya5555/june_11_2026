@@ -326,20 +326,41 @@ async def admin_logout(request: Request, response: Response):
 
 # ── Product Routes ──
 @api_router.get("/products")
-async def get_products(category: Optional[str] = None, search: Optional[str] = None,
-                       sort: Optional[str] = None, featured: Optional[bool] = None):
+async def get_products(
+    category: Optional[str] = None, 
+    subcategory: Optional[str] = None,
+    brand: Optional[str] = None,
+    device_model: Optional[str] = None,
+    search: Optional[str] = None,
+    sort: Optional[str] = None, 
+    featured: Optional[bool] = None
+):
     query = {}
     if category:
         query["category"] = category
+    if subcategory:
+        query["subcategory"] = subcategory
+    if brand:
+        query["brand"] = brand
+    if device_model:
+        query["device_model"] = {"$regex": device_model, "$options": "i"}
     if search:
-        query["$or"] = [{"name": {"$regex": search, "$options": "i"}}, {"description": {"$regex": search, "$options": "i"}}]
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}}, 
+            {"description": {"$regex": search, "$options": "i"}},
+            {"brand": {"$regex": search, "$options": "i"}},
+            {"device_model": {"$regex": search, "$options": "i"}},
+            {"seo_keywords": {"$regex": search, "$options": "i"}}
+        ]
     if featured is not None:
         query["featured"] = featured
+    
     sort_field = [("created_at", -1)]
     if sort == "price_asc": sort_field = [("price", 1)]
     elif sort == "price_desc": sort_field = [("price", -1)]
     elif sort == "name": sort_field = [("name", 1)]
-    elif sort == "rating": sort_field = [("avg_rating", -1)]
+    elif sort == "rating": sort_field = [("rating", -1)]
+    
     products = await db.products.find(query, {"_id": 0}).sort(sort_field).to_list(200)
     return products
 
@@ -355,6 +376,17 @@ async def get_product(product_id: str):
 @api_router.get("/categories")
 async def get_categories():
     return await db.products.distinct("category")
+
+@api_router.get("/brands")
+async def get_brands():
+    """Get all unique brands"""
+    return sorted(await db.products.distinct("brand"))
+
+@api_router.get("/subcategories")
+async def get_subcategories(category: Optional[str] = None):
+    """Get subcategories, optionally filtered by category"""
+    query = {"category": category} if category else {}
+    return sorted(await db.products.distinct("subcategory", query))
 
 # ── Reviews ──
 @api_router.post("/products/{product_id}/reviews")
