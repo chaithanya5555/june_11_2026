@@ -9,6 +9,15 @@ export default function CartSheet() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
 
+  const handleCheckout = () => {
+    if (!user) {
+      // Force login before checkout
+      login();
+      return;
+    }
+    navigate('/checkout');
+  };
+
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8">
@@ -58,7 +67,7 @@ export default function CartSheet() {
           <span className="text-sm text-white/50">Subtotal</span>
           <span data-testid="cart-total" className="text-lg font-semibold text-white">&#8377;{cartTotal.toLocaleString('en-IN')}</span>
         </div>
-        <Button data-testid="cart-checkout-btn" onClick={() => navigate('/checkout')} className="w-full bg-[#007AFF] hover:bg-[#005BB5] text-white rounded-lg h-11 text-sm font-medium">
+        <Button data-testid="cart-checkout-btn" onClick={handleCheckout} className="w-full bg-[#007AFF] hover:bg-[#005BB5] text-white rounded-lg h-11 text-sm font-medium">
           Checkout <ArrowRight size={14} className="ml-1.5" />
         </Button>
       </div>

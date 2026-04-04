@@ -186,7 +186,7 @@ export default function Checkout() {
               <div className="text-left">
                 <p className="text-blue-400 text-sm font-medium mb-1">Not verified in 1 hour?</p>
                 <p className="text-blue-400/70 text-xs">
-                  Raise a complaint on WhatsApp. Order will be placed or refunded within 48 hours.
+                  Raise a complaint on WhatsApp. <strong className="text-blue-400">Order will be placed or refunded within 48 hours.</strong>
                 </p>
               </div>
             </div>
