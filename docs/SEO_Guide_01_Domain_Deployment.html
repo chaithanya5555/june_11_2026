@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEO Guide 1: Domain & SEO Deployment - SnapAlign</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0a0a0a; color: #e5e5e5; line-height: 1.7; }
+        .page { max-width: 900px; margin: 0 auto; padding: 40px; background: #111; }
+        .header { background: linear-gradient(135deg, #007AFF, #5856D6); padding: 40px; border-radius: 20px; text-align: center; margin-bottom: 30px; }
+        .header h1 { font-size: 2.2em; color: white; margin-bottom: 10px; }
+        .header p { color: rgba(255,255,255,0.9); }
+        .section { background: #1a1a1a; border: 1px solid #333; border-radius: 15px; padding: 25px; margin: 25px 0; }
+        .section-title { color: #007AFF; font-size: 1.4em; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        .code-block { background: #0d0d0d; border: 1px solid #333; border-radius: 10px; padding: 20px; font-family: 'Fira Code', monospace; font-size: 0.85em; overflow-x: auto; margin: 15px 0; color: #a5f3fc; white-space: pre; }
+        .highlight { color: #22c55e; }
+        .keyword { color: #f472b6; }
+        .string { color: #fbbf24; }
+        .comment { color: #64748b; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
+        th { background: #007AFF; color: white; }
+        .info-box { background: #1e3a5f; border: 1px solid #3b82f6; border-radius: 10px; padding: 15px; margin: 15px 0; }
+        .warning-box { background: #422006; border: 1px solid #f59e0b; border-radius: 10px; padding: 15px; margin: 15px 0; }
+        .success-box { background: #14532d; border: 1px solid #22c55e; border-radius: 10px; padding: 15px; margin: 15px 0; }
+        .step-card { background: #222; border-radius: 10px; padding: 20px; margin: 15px 0; border-left: 4px solid #007AFF; }
+        .step-num { display: inline-block; width: 30px; height: 30px; background: #007AFF; color: white; border-radius: 50%; text-align: center; line-height: 30px; font-weight: bold; margin-right: 10px; }
+        .page-break { page-break-before: always; margin-top: 40px; }
+        .footer { text-align: center; padding: 20px; color: #666; border-top: 1px solid #333; margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <h1>🚀 SEO Guide 1: Domain & Deployment</h1>
+            <p>Netlify → Vercel Migration + Auto-Sitemap for snapalign.in</p>
+        </div>
+
+        <div class="info-box">
+            <strong>🎯 SEO Focus:</strong> This guide optimizes for high-volume keywords: iPhone 17 Pro Max, iPhone 16, Samsung S26 Ultra, S25 Ultra, Pixel 10 Pro, tempered glass screen protector India.
+        </div>
+
+        <div class="section">
+            <div class="section-title">📁 vercel.json Configuration</div>
+            <p>Create this file in your frontend root for optimal SEO and routing:</p>
+            
+            <div class="code-block">{
+  <span class="string">"version"</span>: <span class="highlight">2</span>,
+  <span class="string">"name"</span>: <span class="string">"snapalign"</span>,
+  <span class="string">"builds"</span>: [
+    {
+      <span class="string">"src"</span>: <span class="string">"package.json"</span>,
+      <span class="string">"use"</span>: <span class="string">"@vercel/static-build"</span>,
+      <span class="string">"config"</span>: { <span class="string">"distDir"</span>: <span class="string">"build"</span> }
+    }
+  ],
+  <span class="string">"routes"</span>: [
+    <span class="comment">// SEO-optimized product routes</span>
+    { <span class="string">"src"</span>: <span class="string">"/products/iphone-17-pro-max-tempered-glass"</span>, <span class="string">"dest"</span>: <span class="string">"/index.html"</span> },
+    { <span class="string">"src"</span>: <span class="string">"/products/iphone-17-air-tempered-glass"</span>, <span class="string">"dest"</span>: <span class="string">"/index.html"</span> },
+    { <span class="string">"src"</span>: <span class="string">"/products/samsung-s26-ultra-screen-protector"</span>, <span class="string">"dest"</span>: <span class="string">"/index.html"</span> },
+    { <span class="string">"src"</span>: <span class="string">"/products/pixel-10-pro-tempered-glass"</span>, <span class="string">"dest"</span>: <span class="string">"/index.html"</span> },
+    
+    <span class="comment">// Static assets</span>
+    { <span class="string">"src"</span>: <span class="string">"/static/(.*)"</span>, <span class="string">"dest"</span>: <span class="string">"/static/$1"</span> },
+    { <span class="string">"src"</span>: <span class="string">"/sitemap.xml"</span>, <span class="string">"dest"</span>: <span class="string">"/sitemap.xml"</span> },
+    { <span class="string">"src"</span>: <span class="string">"/robots.txt"</span>, <span class="string">"dest"</span>: <span class="string">"/robots.txt"</span> },
+    
+    <span class="comment">// SPA fallback</span>
+    { <span class="string">"src"</span>: <span class="string">"/(.*)"</span>, <span class="string">"dest"</span>: <span class="string">"/index.html"</span> }
+  ],
+  <span class="string">"headers"</span>: [
+    {
+      <span class="string">"source"</span>: <span class="string">"/(.*)"</span>,
+      <span class="string">"headers"</span>: [
+        { <span class="string">"key"</span>: <span class="string">"X-Content-Type-Options"</span>, <span class="string">"value"</span>: <span class="string">"nosniff"</span> },
+        { <span class="string">"key"</span>: <span class="string">"X-Frame-Options"</span>, <span class="string">"value"</span>: <span class="string">"DENY"</span> },
+        { <span class="string">"key"</span>: <span class="string">"X-XSS-Protection"</span>, <span class="string">"value"</span>: <span class="string">"1; mode=block"</span> }
+      ]
+    }
+  ]
+}</div>
+        </div>
+
+        <div class="section page-break">
+            <div class="section-title">🗺️ Auto-Sitemap Generator Script</div>
+            <p>Backend endpoint that auto-generates sitemap when products are added:</p>
+            
+            <div class="code-block"><span class="comment"># Add to server.py - Auto-sitemap generator</span>
+
+<span class="keyword">@</span>api_router.get(<span class="string">"/sitemap.xml"</span>, response_class=Response)
+<span class="keyword">async def</span> <span class="highlight">generate_sitemap</span>():
+    <span class="string">"""Auto-generate SEO sitemap with all products"""</span>
+    products = <span class="keyword">await</span> db.products.find({}, {<span class="string">"_id"</span>: <span class="highlight">0</span>}).to_list(<span class="highlight">1000</span>)
+    
+    base_url = <span class="string">"https://snapalign.in"</span>
+    
+    <span class="comment"># Static pages</span>
+    static_pages = [
+        (<span class="string">"/"</span>, <span class="string">"1.0"</span>, <span class="string">"daily"</span>),
+        (<span class="string">"/shop"</span>, <span class="string">"1.0"</span>, <span class="string">"daily"</span>),
+        (<span class="string">"/collections/iphone-17-tempered-glass"</span>, <span class="string">"0.9"</span>, <span class="string">"weekly"</span>),
+        (<span class="string">"/collections/samsung-s26-screen-protector"</span>, <span class="string">"0.9"</span>, <span class="string">"weekly"</span>),
+        (<span class="string">"/collections/pixel-10-tempered-glass"</span>, <span class="string">"0.9"</span>, <span class="string">"weekly"</span>),
+        (<span class="string">"/about"</span>, <span class="string">"0.5"</span>, <span class="string">"monthly"</span>),
+        (<span class="string">"/contact"</span>, <span class="string">"0.5"</span>, <span class="string">"monthly"</span>),
+    ]
+    
+    xml = <span class="string">'&lt;?xml version="1.0" encoding="UTF-8"?&gt;\n'</span>
+    xml += <span class="string">'&lt;urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"&gt;\n'</span>
+    
+    <span class="comment"># Add static pages</span>
+    <span class="keyword">for</span> path, priority, freq <span class="keyword">in</span> static_pages:
+        xml += <span class="string">f'''  &lt;url&gt;
+    &lt;loc&gt;{base_url}{path}&lt;/loc&gt;
+    &lt;changefreq&gt;{freq}&lt;/changefreq&gt;
+    &lt;priority&gt;{priority}&lt;/priority&gt;
+  &lt;/url&gt;\n'''</span>
+    
+    <span class="comment"># Add product pages dynamically</span>
+    <span class="keyword">for</span> product <span class="keyword">in</span> products:
+        slug = product.get(<span class="string">"slug"</span>) <span class="keyword">or</span> generate_seo_slug(product[<span class="string">"name"</span>])
+        xml += <span class="string">f'''  &lt;url&gt;
+    &lt;loc&gt;{base_url}/products/{slug}&lt;/loc&gt;
+    &lt;changefreq&gt;weekly&lt;/changefreq&gt;
+    &lt;priority&gt;0.8&lt;/priority&gt;
+  &lt;/url&gt;\n'''</span>
+    
+    xml += <span class="string">'&lt;/urlset&gt;'</span>
+    
+    <span class="keyword">return</span> Response(content=xml, media_type=<span class="string">"application/xml"</span>)
+
+<span class="keyword">def</span> <span class="highlight">generate_seo_slug</span>(name: <span class="keyword">str</span>) -> <span class="keyword">str</span>:
+    <span class="string">"""Generate SEO-friendly slug from product name"""</span>
+    <span class="keyword">import</span> re
+    slug = name.lower()
+    slug = re.sub(<span class="string">r'[^a-z0-9\s-]'</span>, <span class="string">''</span>, slug)
+    slug = re.sub(<span class="string">r'[\s_]+'</span>, <span class="string">'-'</span>, slug)
+    <span class="keyword">return</span> slug.strip(<span class="string">'-'</span>)</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">🤖 robots.txt for AI Crawlers</div>
+            
+            <div class="code-block"><span class="comment"># public/robots.txt - Optimized for Googlebot + AI assistants</span>
+
+User-agent: *
+Allow: /
+
+<span class="comment"># Allow AI crawlers explicitly</span>
+User-agent: GPTBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+<span class="comment"># Sitemap location</span>
+Sitemap: https://snapalign.in/sitemap.xml
+
+<span class="comment"># Crawl-delay for non-Google bots</span>
+User-agent: *
+Crawl-delay: 1</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">🔗 High-Click SEO URL Structure</div>
+            
+            <table>
+                <tr>
+                    <th>Phone Model</th>
+                    <th>SEO Slug</th>
+                    <th>Target Keywords</th>
+                </tr>
+                <tr>
+                    <td>iPhone 17 Pro Max</td>
+                    <td><code>/products/iphone-17-pro-max-tempered-glass</code></td>
+                    <td>iphone 17 pro max screen protector india</td>
+                </tr>
+                <tr>
+                    <td>iPhone 17 Air</td>
+                    <td><code>/products/iphone-17-air-tempered-glass</code></td>
+                    <td>iphone 17 air glass guard price</td>
+                </tr>
+                <tr>
+                    <td>iPhone 16</td>
+                    <td><code>/products/iphone-16-tempered-glass</code></td>
+                    <td>iphone 16 tempered glass 9h</td>
+                </tr>
+                <tr>
+                    <td>Samsung S26 Ultra</td>
+                    <td><code>/products/samsung-s26-ultra-screen-protector</code></td>
+                    <td>samsung s26 ultra fingerprint glass</td>
+                </tr>
+                <tr>
+                    <td>Samsung S25 Ultra</td>
+                    <td><code>/products/samsung-s25-ultra-tempered-glass</code></td>
+                    <td>s25 ultra screen guard india</td>
+                </tr>
+                <tr>
+                    <td>Galaxy Z Fold 8</td>
+                    <td><code>/products/samsung-z-fold-8-screen-protector</code></td>
+                    <td>z fold 8 foldable glass protector</td>
+                </tr>
+                <tr>
+                    <td>Pixel 10 Pro Fold</td>
+                    <td><code>/products/pixel-10-pro-fold-tempered-glass</code></td>
+                    <td>pixel 10 pro fold screen protector</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="section page-break">
+            <div class="section-title">📋 Migration Checklist: Netlify → Vercel</div>
+
+            <div class="step-card">
+                <span class="step-num">1</span>
+                <strong>Export Domain from Netlify</strong>
+                <p>Netlify → Domain settings → Remove domain from site (keep DNS)</p>
+            </div>
+
+            <div class="step-card">
+                <span class="step-num">2</span>
+                <strong>Import to Vercel</strong>
+                <p>Vercel → Add New Project → Import from GitHub → Select snapalign repo</p>
+            </div>
+
+            <div class="step-card">
+                <span class="step-num">3</span>
+                <strong>Configure Build Settings</strong>
+                <ul style="margin-top: 10px;">
+                    <li>Root Directory: <code>frontend</code></li>
+                    <li>Build Command: <code>yarn build</code></li>
+                    <li>Output Directory: <code>build</code></li>
+                </ul>
+            </div>
+
+            <div class="step-card">
+                <span class="step-num">4</span>
+                <strong>Set Environment Variable</strong>
+                <p><code>REACT_APP_BACKEND_URL</code> = <code>https://snapalign-backend.onrender.com</code></p>
+            </div>
+
+            <div class="step-card">
+                <span class="step-num">5</span>
+                <strong>Add Custom Domain</strong>
+                <p>Vercel → Settings → Domains → Add <code>snapalign.in</code></p>
+            </div>
+
+            <div class="step-card">
+                <span class="step-num">6</span>
+                <strong>Update DNS Records</strong>
+                <table>
+                    <tr><th>Type</th><th>Name</th><th>Value</th></tr>
+                    <tr><td>A</td><td>@</td><td><code>76.76.21.21</code></td></tr>
+                    <tr><td>CNAME</td><td>www</td><td><code>cname.vercel-dns.com</code></td></tr>
+                </table>
+            </div>
+
+            <div class="success-box">
+                ✅ <strong>Done!</strong> Your site is now on Vercel with auto-sitemap generation!
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>📘 SnapAlign SEO Guide 1: Domain & Deployment | Version 1.0 | July 2025</p>
+        </div>
+    </div>
+</body>
+</html>

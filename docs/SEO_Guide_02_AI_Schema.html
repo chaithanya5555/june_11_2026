@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEO Guide 2: Agentic AI & Schema Markup - SnapAlign</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0a0a0a; color: #e5e5e5; line-height: 1.7; }
+        .page { max-width: 900px; margin: 0 auto; padding: 40px; background: #111; }
+        .header { background: linear-gradient(135deg, #8b5cf6, #ec4899); padding: 40px; border-radius: 20px; text-align: center; margin-bottom: 30px; }
+        .header h1 { font-size: 2.2em; color: white; margin-bottom: 10px; }
+        .header p { color: rgba(255,255,255,0.9); }
+        .section { background: #1a1a1a; border: 1px solid #333; border-radius: 15px; padding: 25px; margin: 25px 0; }
+        .section-title { color: #8b5cf6; font-size: 1.4em; margin-bottom: 15px; }
+        .code-block { background: #0d0d0d; border: 1px solid #333; border-radius: 10px; padding: 20px; font-family: 'Fira Code', monospace; font-size: 0.8em; overflow-x: auto; margin: 15px 0; color: #a5f3fc; white-space: pre; }
+        .highlight { color: #22c55e; }
+        .keyword { color: #f472b6; }
+        .string { color: #fbbf24; }
+        .comment { color: #64748b; }
+        .ai-box { background: linear-gradient(135deg, #1e1b4b, #312e81); border: 2px solid #8b5cf6; border-radius: 15px; padding: 20px; margin: 20px 0; }
+        .info-box { background: #1e3a5f; border: 1px solid #3b82f6; border-radius: 10px; padding: 15px; margin: 15px 0; }
+        .success-box { background: #14532d; border: 1px solid #22c55e; border-radius: 10px; padding: 15px; margin: 15px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
+        th { background: #8b5cf6; color: white; }
+        .page-break { page-break-before: always; margin-top: 40px; }
+        .footer { text-align: center; padding: 20px; color: #666; border-top: 1px solid #333; margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <h1>🤖 SEO Guide 2: Agentic AI & Schema</h1>
+            <p>The "Top 5" Secret - Making AI Assistants Recommend SnapAlign</p>
+        </div>
+
+        <div class="ai-box">
+            <h3 style="color: #c4b5fd; margin-bottom: 10px;">🎯 The Agentic AI Strategy</h3>
+            <p>When users ask ChatGPT, Gemini, or Claude: <em>"What's the best iPhone 17 tempered glass in India?"</em> - your schema markup ensures SnapAlign appears in their recommendations.</p>
+        </div>
+
+        <div class="section">
+            <div class="section-title">📋 JSON-LD Schema Component</div>
+            <p>Create <code>src/components/ProductSchema.js</code>:</p>
+            
+            <div class="code-block"><span class="keyword">import</span> React <span class="keyword">from</span> <span class="string">'react'</span>;
+<span class="keyword">import</span> { Helmet } <span class="keyword">from</span> <span class="string">'react-helmet-async'</span>;
+
+<span class="comment">/**
+ * ProductSchema - Feeds AI crawlers (GPT, Gemini, Claude) with structured data
+ * Optimized for: iPhone 17, Samsung S26, Pixel 10 tempered glass queries
+ */</span>
+<span class="keyword">export default function</span> <span class="highlight">ProductSchema</span>({ product }) {
+  <span class="keyword">const</span> schema = {
+    <span class="string">"@context"</span>: <span class="string">"https://schema.org"</span>,
+    <span class="string">"@type"</span>: <span class="string">"Product"</span>,
+    
+    <span class="comment">// Core product info for AI</span>
+    <span class="string">"name"</span>: product.name,
+    <span class="string">"description"</span>: product.description,
+    <span class="string">"brand"</span>: {
+      <span class="string">"@type"</span>: <span class="string">"Brand"</span>,
+      <span class="string">"name"</span>: <span class="string">"SnapAlign"</span>,
+      <span class="string">"logo"</span>: <span class="string">"https://snapalign.in/logo.png"</span>
+    },
+    
+    <span class="comment">// SEO-optimized image</span>
+    <span class="string">"image"</span>: [
+      product.image,
+      product.images?.[<span class="highlight">0</span>] || product.image
+    ],
+    
+    <span class="comment">// SKU for inventory tracking</span>
+    <span class="string">"sku"</span>: product.product_id,
+    <span class="string">"mpn"</span>: product.product_id,
+    
+    <span class="comment">// Pricing in INR - Key for AI recommendations</span>
+    <span class="string">"offers"</span>: {
+      <span class="string">"@type"</span>: <span class="string">"Offer"</span>,
+      <span class="string">"url"</span>: <span class="string">`https://snapalign.in/products/${product.slug}`</span>,
+      <span class="string">"priceCurrency"</span>: <span class="string">"INR"</span>,
+      <span class="string">"price"</span>: product.price,
+      <span class="string">"priceValidUntil"</span>: <span class="string">"2026-12-31"</span>,
+      <span class="string">"availability"</span>: product.stock > <span class="highlight">0</span> 
+        ? <span class="string">"https://schema.org/InStock"</span> 
+        : <span class="string">"https://schema.org/OutOfStock"</span>,
+      <span class="string">"seller"</span>: {
+        <span class="string">"@type"</span>: <span class="string">"Organization"</span>,
+        <span class="string">"name"</span>: <span class="string">"SnapAlign India"</span>
+      },
+      <span class="string">"shippingDetails"</span>: {
+        <span class="string">"@type"</span>: <span class="string">"OfferShippingDetails"</span>,
+        <span class="string">"shippingRate"</span>: {
+          <span class="string">"@type"</span>: <span class="string">"MonetaryAmount"</span>,
+          <span class="string">"value"</span>: product.price >= <span class="highlight">500</span> ? <span class="highlight">0</span> : <span class="highlight">49</span>,
+          <span class="string">"currency"</span>: <span class="string">"INR"</span>
+        },
+        <span class="string">"deliveryTime"</span>: {
+          <span class="string">"@type"</span>: <span class="string">"ShippingDeliveryTime"</span>,
+          <span class="string">"handlingTime"</span>: {
+            <span class="string">"@type"</span>: <span class="string">"QuantitativeValue"</span>,
+            <span class="string">"minValue"</span>: <span class="highlight">1</span>,
+            <span class="string">"maxValue"</span>: <span class="highlight">2</span>,
+            <span class="string">"unitCode"</span>: <span class="string">"DAY"</span>
+          }
+        }
+      }
+    },
+    
+    <span class="comment">// 9H Hardness Rating - Critical for AI "best glass" queries</span>
+    <span class="string">"additionalProperty"</span>: [
+      {
+        <span class="string">"@type"</span>: <span class="string">"PropertyValue"</span>,
+        <span class="string">"name"</span>: <span class="string">"Hardness Rating"</span>,
+        <span class="string">"value"</span>: <span class="string">"9H"</span>
+      },
+      {
+        <span class="string">"@type"</span>: <span class="string">"PropertyValue"</span>,
+        <span class="string">"name"</span>: <span class="string">"Glass Type"</span>,
+        <span class="string">"value"</span>: <span class="string">"11D Full Cover Tempered Glass"</span>
+      },
+      {
+        <span class="string">"@type"</span>: <span class="string">"PropertyValue"</span>,
+        <span class="string">"name"</span>: <span class="string">"Fingerprint Compatible"</span>,
+        <span class="string">"value"</span>: <span class="string">"Yes - Works with ultrasonic sensors"</span>
+      },
+      {
+        <span class="string">"@type"</span>: <span class="string">"PropertyValue"</span>,
+        <span class="string">"name"</span>: <span class="string">"Installation Kit"</span>,
+        <span class="string">"value"</span>: <span class="string">"Included - Easy alignment frame"</span>
+      }
+    ],
+    
+    <span class="comment">// Aggregate rating for trust</span>
+    <span class="string">"aggregateRating"</span>: {
+      <span class="string">"@type"</span>: <span class="string">"AggregateRating"</span>,
+      <span class="string">"ratingValue"</span>: product.rating || <span class="highlight">4.8</span>,
+      <span class="string">"reviewCount"</span>: product.review_count || <span class="highlight">150</span>,
+      <span class="string">"bestRating"</span>: <span class="highlight">5</span>,
+      <span class="string">"worstRating"</span>: <span class="highlight">1</span>
+    }
+  };
+
+  <span class="keyword">return</span> (
+    &lt;Helmet&gt;
+      &lt;script type=<span class="string">"application/ld+json"</span>&gt;
+        {JSON.stringify(schema)}
+      &lt;/script&gt;
+    &lt;/Helmet&gt;
+  );
+}</div>
+        </div>
+
+        <div class="section page-break">
+            <div class="section-title">🏢 Organization Schema (Site-wide)</div>
+            <p>Add to <code>src/components/OrganizationSchema.js</code>:</p>
+            
+            <div class="code-block"><span class="keyword">export default function</span> <span class="highlight">OrganizationSchema</span>() {
+  <span class="keyword">const</span> schema = {
+    <span class="string">"@context"</span>: <span class="string">"https://schema.org"</span>,
+    <span class="string">"@type"</span>: <span class="string">"Organization"</span>,
+    <span class="string">"name"</span>: <span class="string">"SnapAlign"</span>,
+    <span class="string">"alternateName"</span>: <span class="string">"SnapAlign India"</span>,
+    <span class="string">"url"</span>: <span class="string">"https://snapalign.in"</span>,
+    <span class="string">"logo"</span>: <span class="string">"https://snapalign.in/logo.png"</span>,
+    <span class="string">"description"</span>: <span class="string">"Premium 9H tempered glass screen protectors for iPhone 17, Samsung S26, Pixel 10. Factory-direct prices in India."</span>,
+    
+    <span class="comment">// Contact for customer trust</span>
+    <span class="string">"contactPoint"</span>: {
+      <span class="string">"@type"</span>: <span class="string">"ContactPoint"</span>,
+      <span class="string">"telephone"</span>: <span class="string">"+91-XXXXXXXXXX"</span>,
+      <span class="string">"contactType"</span>: <span class="string">"customer service"</span>,
+      <span class="string">"availableLanguage"</span>: [<span class="string">"English"</span>, <span class="string">"Hindi"</span>]
+    },
+    
+    <span class="comment">// Social profiles for AI verification</span>
+    <span class="string">"sameAs"</span>: [
+      <span class="string">"https://instagram.com/snapalign"</span>,
+      <span class="string">"https://facebook.com/snapalign"</span>,
+      <span class="string">"https://twitter.com/snapalign"</span>
+    ],
+    
+    <span class="comment">// India-specific addressing</span>
+    <span class="string">"address"</span>: {
+      <span class="string">"@type"</span>: <span class="string">"PostalAddress"</span>,
+      <span class="string">"addressCountry"</span>: <span class="string">"IN"</span>
+    }
+  };
+
+  <span class="keyword">return</span> (
+    &lt;Helmet&gt;
+      &lt;script type=<span class="string">"application/ld+json"</span>&gt;
+        {JSON.stringify(schema)}
+      &lt;/script&gt;
+    &lt;/Helmet&gt;
+  );
+}</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">❓ FAQ Schema for Voice Search</div>
+            <p>Create <code>src/components/FAQSchema.js</code>:</p>
+            
+            <div class="code-block"><span class="keyword">export default function</span> <span class="highlight">FAQSchema</span>({ product }) {
+  <span class="comment">// Dynamic FAQs based on product type</span>
+  <span class="keyword">const</span> faqs = [
+    {
+      question: <span class="string">`Does SnapAlign ${product.name} work with Face ID/fingerprint?`</span>,
+      answer: <span class="string">`Yes! Our 11D tempered glass is designed with precision cutouts for Face ID and works perfectly with ultrasonic fingerprint sensors on ${product.compatible_model}.`</span>
+    },
+    {
+      question: <span class="string">`Is this screen protector 9H hardness?`</span>,
+      answer: <span class="string">`Yes, SnapAlign uses 9H rated tempered glass - the highest hardness rating available. It protects against scratches, drops, and daily wear.`</span>
+    },
+    {
+      question: <span class="string">`Does it come with an installation kit?`</span>,
+      answer: <span class="string">`Yes! Every SnapAlign screen protector includes a free easy-install alignment frame, cleaning kit, and dust removal stickers.`</span>
+    },
+    {
+      question: <span class="string">`What is the price in India?`</span>,
+      answer: <span class="string">`SnapAlign ${product.name} is priced at ₹${product.price} with free shipping on orders above ₹500. Factory-direct pricing - no middlemen.`</span>
+    },
+    {
+      question: <span class="string">`Is there a warranty?`</span>,
+      answer: <span class="string">`Yes, all SnapAlign products come with a 30-day replacement warranty against manufacturing defects.`</span>
+    }
+  ];
+
+  <span class="keyword">const</span> schema = {
+    <span class="string">"@context"</span>: <span class="string">"https://schema.org"</span>,
+    <span class="string">"@type"</span>: <span class="string">"FAQPage"</span>,
+    <span class="string">"mainEntity"</span>: faqs.map(faq => ({
+      <span class="string">"@type"</span>: <span class="string">"Question"</span>,
+      <span class="string">"name"</span>: faq.question,
+      <span class="string">"acceptedAnswer"</span>: {
+        <span class="string">"@type"</span>: <span class="string">"Answer"</span>,
+        <span class="string">"text"</span>: faq.answer
+      }
+    }))
+  };
+
+  <span class="keyword">return</span> (
+    &lt;Helmet&gt;
+      &lt;script type=<span class="string">"application/ld+json"</span>&gt;
+        {JSON.stringify(schema)}
+      &lt;/script&gt;
+    &lt;/Helmet&gt;
+  );
+}</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">🎯 AI Recommendation Triggers</div>
+            
+            <table>
+                <tr>
+                    <th>User Query (Voice/Text)</th>
+                    <th>Schema Field That Triggers Recommendation</th>
+                </tr>
+                <tr>
+                    <td>"Best iPhone 17 screen protector in India"</td>
+                    <td><code>brand.name</code> + <code>priceCurrency: INR</code></td>
+                </tr>
+                <tr>
+                    <td>"9H tempered glass for Samsung S26"</td>
+                    <td><code>additionalProperty: Hardness Rating 9H</code></td>
+                </tr>
+                <tr>
+                    <td>"Does it work with fingerprint sensor?"</td>
+                    <td><code>additionalProperty: Fingerprint Compatible</code></td>
+                </tr>
+                <tr>
+                    <td>"Cheap screen protector with installation kit"</td>
+                    <td><code>offers.price</code> + <code>additionalProperty: Installation Kit</code></td>
+                </tr>
+                <tr>
+                    <td>"Where to buy Pixel 10 glass in India?"</td>
+                    <td><code>offers.availability: InStock</code> + <code>address.country: IN</code></td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="success-box">
+            ✅ <strong>Result:</strong> When AI assistants index your pages, they'll have structured data to recommend SnapAlign for tempered glass queries in India.
+        </div>
+
+        <div class="footer">
+            <p>📘 SnapAlign SEO Guide 2: Agentic AI & Schema | Version 1.0 | July 2025</p>
+        </div>
+    </div>
+</body>
+</html>

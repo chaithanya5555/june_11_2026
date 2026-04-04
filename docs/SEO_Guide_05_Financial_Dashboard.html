@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEO Guide 5: Manager's Financial Dashboard - SnapAlign</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #000; color: #e5e5e5; line-height: 1.7; }
+        .page { max-width: 1000px; margin: 0 auto; padding: 30px; background: #0a0a0a; }
+        .header { background: linear-gradient(135deg, #dc2626, #ea580c); padding: 40px; border-radius: 20px; text-align: center; margin-bottom: 30px; }
+        .header h1 { font-size: 2.2em; color: white; margin-bottom: 10px; }
+        .section { background: #111; border: 1px solid #222; border-radius: 15px; padding: 25px; margin: 25px 0; }
+        .section-title { color: #f97316; font-size: 1.4em; margin-bottom: 15px; }
+        .code-block { background: #0a0a0a; border: 1px solid #222; border-radius: 10px; padding: 20px; font-family: 'Fira Code', monospace; font-size: 0.75em; overflow-x: auto; margin: 15px 0; color: #a5f3fc; white-space: pre; }
+        .highlight { color: #22c55e; }
+        .string { color: #fbbf24; }
+        .comment { color: #525252; }
+        .dashboard-mock { background: #0a0a0a; border: 2px solid #222; border-radius: 20px; padding: 25px; margin: 20px 0; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 20px 0; }
+        .stat-card { background: linear-gradient(135deg, #1a1a1a, #222); border-radius: 15px; padding: 20px; text-align: center; border: 1px solid #333; }
+        .stat-value { font-size: 2em; font-weight: bold; color: #22c55e; }
+        .stat-label { color: #666; font-size: 0.85em; margin-top: 5px; }
+        .formula-box { background: linear-gradient(135deg, #1e1b4b, #312e81); border: 2px solid #8b5cf6; border-radius: 15px; padding: 25px; margin: 20px 0; text-align: center; }
+        .formula { font-size: 1.3em; color: #c4b5fd; font-family: 'Times New Roman', serif; margin: 15px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 0.85em; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #222; }
+        th { background: #f97316; color: black; }
+        .badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 0.8em; font-weight: bold; }
+        .badge-trust { background: linear-gradient(135deg, #059669, #10b981); color: white; }
+        .page-break { page-break-before: always; margin-top: 40px; }
+        .footer { text-align: center; padding: 20px; color: #444; border-top: 1px solid #222; margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <h1>💰 SEO Guide 5: Manager's Financial Dashboard</h1>
+            <p>Dark Mode Admin UI + INR Landed Cost Calculator + Alibaba Import Tracking</p>
+        </div>
+
+        <!-- Dashboard Mockup -->
+        <div class="dashboard-mock">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #222;">
+                <div>
+                    <h2 style="color: #f97316;">📊 SnapAlign Manager Dashboard</h2>
+                    <span style="color: #444; font-size: 0.85em;">Last updated: Just now</span>
+                </div>
+                <span style="background: #14532d; color: #22c55e; padding: 8px 15px; border-radius: 20px; font-size: 0.85em;">🟢 All Systems Online</span>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div style="font-size: 2em; margin-bottom: 10px;">📦</div>
+                    <div class="stat-value">47</div>
+                    <div class="stat-label">Pending Orders</div>
+                </div>
+                <div class="stat-card">
+                    <div style="font-size: 2em; margin-bottom: 10px;">👥</div>
+                    <div class="stat-value">5</div>
+                    <div class="stat-label">Active Employees</div>
+                </div>
+                <div class="stat-card">
+                    <div style="font-size: 2em; margin-bottom: 10px;">💰</div>
+                    <div class="stat-value" style="color: #22c55e;">₹2.4L</div>
+                    <div class="stat-label">Today's Revenue</div>
+                </div>
+                <div class="stat-card">
+                    <div style="font-size: 2em; margin-bottom: 10px;">📈</div>
+                    <div class="stat-value" style="color: #3b82f6;">68%</div>
+                    <div class="stat-label">Gross Margin</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">📐 Landed Cost Calculator (Alibaba Import)</div>
+            
+            <div class="formula-box">
+                <div style="color: #a5b4fc; font-size: 0.9em; margin-bottom: 10px;">THE FORMULA</div>
+                <div class="formula">
+                    Landed Cost = (Alibaba Price + Shipping) × (1 + Duty%) × 1.18
+                </div>
+                <div style="color: #64748b; font-size: 0.85em; margin-top: 15px;">
+                    The 1.18 multiplier accounts for 18% GST in India
+                </div>
+            </div>
+
+            <h4 style="margin-top: 20px; color: #f97316;">Example Calculation:</h4>
+            <table>
+                <tr>
+                    <th>Component</th>
+                    <th>Value</th>
+                    <th>Calculation</th>
+                </tr>
+                <tr>
+                    <td>Alibaba Price (USD)</td>
+                    <td>$1.50</td>
+                    <td>Per unit FOB price</td>
+                </tr>
+                <tr>
+                    <td>Shipping (USD)</td>
+                    <td>$0.30</td>
+                    <td>Sea freight per unit</td>
+                </tr>
+                <tr>
+                    <td>Import Duty</td>
+                    <td>18%</td>
+                    <td>× 1.18</td>
+                </tr>
+                <tr>
+                    <td>GST</td>
+                    <td>18%</td>
+                    <td>× 1.18</td>
+                </tr>
+                <tr>
+                    <td>Exchange Rate</td>
+                    <td>₹83.50</td>
+                    <td>USD to INR</td>
+                </tr>
+                <tr style="background: #14532d;">
+                    <td><strong>Landed Cost</strong></td>
+                    <td colspan="2"><strong style="color: #22c55e;">₹209.25 per unit</strong></td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="section page-break">
+            <div class="section-title">💻 Landed Cost Calculator Component</div>
+            
+            <div class="code-block"><span class="comment">// src/components/admin/LandedCostCalculator.js</span>
+
+<span class="keyword">import</span> { useState } <span class="keyword">from</span> <span class="string">'react'</span>;
+
+<span class="keyword">export default function</span> <span class="highlight">LandedCostCalculator</span>() {
+  <span class="keyword">const</span> [alibabaPrice, setAlibabaPrice] = useState(<span class="highlight">1.5</span>);
+  <span class="keyword">const</span> [shippingCost, setShippingCost] = useState(<span class="highlight">0.3</span>);
+  <span class="keyword">const</span> [dutyPercent, setDutyPercent] = useState(<span class="highlight">18</span>);
+  <span class="keyword">const</span> [exchangeRate, setExchangeRate] = useState(<span class="highlight">83.5</span>);
+  
+  <span class="keyword">const</span> GST_PERCENT = <span class="highlight">18</span>;
+  
+  <span class="comment">// The Formula: (Price + Shipping) × (1 + Duty%) × (1 + GST%) × Exchange Rate</span>
+  <span class="keyword">const</span> calculateLandedCost = () => {
+    <span class="keyword">const</span> fobCost = alibabaPrice + shippingCost;
+    <span class="keyword">const</span> afterDuty = fobCost * (<span class="highlight">1</span> + dutyPercent / <span class="highlight">100</span>);
+    <span class="keyword">const</span> afterGST = afterDuty * (<span class="highlight">1</span> + GST_PERCENT / <span class="highlight">100</span>);
+    <span class="keyword">const</span> landedCostINR = afterGST * exchangeRate;
+    <span class="keyword">return</span> landedCostINR.toFixed(<span class="highlight">2</span>);
+  };
+  
+  <span class="keyword">const</span> calculateMinSellingPrice = () => {
+    <span class="keyword">const</span> landed = parseFloat(calculateLandedCost());
+    <span class="keyword">const</span> paymentFee = landed * <span class="highlight">0.02</span>; <span class="comment">// 2% Razorpay fee</span>
+    <span class="keyword">const</span> buffer = landed * <span class="highlight">0.1</span>; <span class="comment">// 10% buffer for returns</span>
+    <span class="keyword">return</span> (landed + paymentFee + buffer).toFixed(<span class="highlight">2</span>);
+  };
+
+  <span class="keyword">return</span> (
+    &lt;div className=<span class="string">"bg-[#111] border border-[#222] rounded-xl p-6"</span>&gt;
+      &lt;h3 className=<span class="string">"text-lg font-bold text-[#f97316] mb-6 flex items-center gap-2"</span>&gt;
+        📐 Landed Cost Calculator
+      &lt;/h3&gt;
+      
+      &lt;div className=<span class="string">"grid grid-cols-2 gap-4 mb-6"</span>&gt;
+        &lt;div&gt;
+          &lt;label className=<span class="string">"text-gray-400 text-sm"</span>&gt;Alibaba Price (USD)&lt;/label&gt;
+          &lt;input 
+            type=<span class="string">"number"</span>
+            value={alibabaPrice}
+            onChange={(e) =&gt; setAlibabaPrice(parseFloat(e.target.value))}
+            className=<span class="string">"w-full bg-[#1a1a1a] border border-[#333] rounded-lg p-3 text-white mt-1"</span>
+            step=<span class="string">"0.01"</span>
+          /&gt;
+        &lt;/div&gt;
+        &lt;div&gt;
+          &lt;label className=<span class="string">"text-gray-400 text-sm"</span>&gt;Shipping (USD)&lt;/label&gt;
+          &lt;input 
+            type=<span class="string">"number"</span>
+            value={shippingCost}
+            onChange={(e) =&gt; setShippingCost(parseFloat(e.target.value))}
+            className=<span class="string">"w-full bg-[#1a1a1a] border border-[#333] rounded-lg p-3 text-white mt-1"</span>
+            step=<span class="string">"0.01"</span>
+          /&gt;
+        &lt;/div&gt;
+        &lt;div&gt;
+          &lt;label className=<span class="string">"text-gray-400 text-sm"</span>&gt;Import Duty (%)&lt;/label&gt;
+          &lt;input 
+            type=<span class="string">"number"</span>
+            value={dutyPercent}
+            onChange={(e) =&gt; setDutyPercent(parseFloat(e.target.value))}
+            className=<span class="string">"w-full bg-[#1a1a1a] border border-[#333] rounded-lg p-3 text-white mt-1"</span>
+          /&gt;
+        &lt;/div&gt;
+        &lt;div&gt;
+          &lt;label className=<span class="string">"text-gray-400 text-sm"</span>&gt;Exchange Rate (₹/USD)&lt;/label&gt;
+          &lt;input 
+            type=<span class="string">"number"</span>
+            value={exchangeRate}
+            onChange={(e) =&gt; setExchangeRate(parseFloat(e.target.value))}
+            className=<span class="string">"w-full bg-[#1a1a1a] border border-[#333] rounded-lg p-3 text-white mt-1"</span>
+            step=<span class="string">"0.01"</span>
+          /&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      
+      <span class="comment">{/* Results */}</span>
+      &lt;div className=<span class="string">"bg-[#0a0a0a] rounded-xl p-4 space-y-3"</span>&gt;
+        &lt;div className=<span class="string">"flex justify-between"</span>&gt;
+          &lt;span className=<span class="string">"text-gray-400"</span>&gt;Landed Cost:&lt;/span&gt;
+          &lt;span className=<span class="string">"text-2xl font-bold text-green-400"</span>&gt;₹{calculateLandedCost()}&lt;/span&gt;
+        &lt;/div&gt;
+        &lt;div className=<span class="string">"flex justify-between border-t border-[#222] pt-3"</span>&gt;
+          &lt;span className=<span class="string">"text-gray-400"</span>&gt;Min. Selling Price:&lt;/span&gt;
+          &lt;span className=<span class="string">"text-xl font-bold text-amber-400"</span>&gt;₹{calculateMinSellingPrice()}&lt;/span&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  );
+}</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">🏭 "Direct Import Price" Trust Badge</div>
+            <p>Show customers they're getting factory-direct pricing:</p>
+            
+            <div class="code-block"><span class="comment">// src/components/DirectImportBadge.js</span>
+
+<span class="keyword">export default function</span> <span class="highlight">DirectImportBadge</span>({ landedCost, sellingPrice }) {
+  <span class="keyword">const</span> savings = (<span class="highlight">1</span> - landedCost / sellingPrice) * <span class="highlight">100</span>;
+  
+  <span class="keyword">return</span> (
+    &lt;div className=<span class="string">"bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 rounded-xl p-4"</span>&gt;
+      &lt;div className=<span class="string">"flex items-center gap-3"</span>&gt;
+        &lt;div className=<span class="string">"w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center"</span>&gt;
+          &lt;span className=<span class="string">"text-2xl"</span>&gt;🏭&lt;/span&gt;
+        &lt;/div&gt;
+        &lt;div&gt;
+          &lt;p className=<span class="string">"text-emerald-400 font-bold text-sm"</span>&gt;Direct Import Price&lt;/p&gt;
+          &lt;p className=<span class="string">"text-emerald-400/70 text-xs"</span>&gt;
+            Factory-direct from Alibaba • No middlemen markup
+          &lt;/p&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      
+      &lt;div className=<span class="string">"mt-3 flex items-center justify-between bg-black/20 rounded-lg p-3"</span>&gt;
+        &lt;span className=<span class="string">"text-emerald-400/70 text-xs"</span>&gt;You save vs retail:&lt;/span&gt;
+        &lt;span className=<span class="string">"text-emerald-400 font-bold"</span>&gt;~{savings.toFixed(<span class="highlight">0</span>)}%&lt;/span&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  );
+}</div>
+
+            <div style="margin-top: 20px; padding: 20px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(20, 184, 166, 0.2)); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 15px;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="width: 50px; height: 50px; background: rgba(16, 185, 129, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5em;">🏭</div>
+                    <div>
+                        <p style="color: #10b981; font-weight: bold;">Direct Import Price</p>
+                        <p style="color: rgba(16, 185, 129, 0.7); font-size: 0.85em;">Factory-direct from Alibaba • No middlemen markup</p>
+                    </div>
+                </div>
+                <div style="margin-top: 15px; display: flex; justify-content: space-between; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 10px;">
+                    <span style="color: rgba(16, 185, 129, 0.7); font-size: 0.85em;">You save vs retail:</span>
+                    <span style="color: #10b981; font-weight: bold;">~58%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section page-break">
+            <div class="section-title">⚠️ Profit Guardrail Alert System</div>
+            
+            <div class="code-block"><span class="comment">// src/components/admin/ProfitGuardrail.js</span>
+
+<span class="keyword">export default function</span> <span class="highlight">ProfitGuardrail</span>({ order }) {
+  <span class="keyword">const</span> landedCost = order.items.reduce((sum, item) =&gt; 
+    sum + (item.cost_price * item.quantity), <span class="highlight">0</span>
+  );
+  <span class="keyword">const</span> sellingPrice = order.total;
+  <span class="keyword">const</span> couponDiscount = order.discount || <span class="highlight">0</span>;
+  <span class="keyword">const</span> netPrice = sellingPrice - couponDiscount;
+  <span class="keyword">const</span> profit = netPrice - landedCost;
+  <span class="keyword">const</span> isLoss = profit < <span class="highlight">0</span>;
+
+  <span class="keyword">if</span> (isLoss) {
+    <span class="keyword">return</span> (
+      &lt;div className=<span class="string">"bg-red-500/10 border-2 border-red-500 rounded-xl p-4"</span>&gt;
+        &lt;div className=<span class="string">"flex items-center gap-3"</span>&gt;
+          &lt;span className=<span class="string">"text-3xl"</span>&gt;🚨&lt;/span&gt;
+          &lt;div&gt;
+            &lt;p className=<span class="string">"text-red-500 font-bold"</span>&gt;PROFIT GUARDRAIL ALERT&lt;/p&gt;
+            &lt;p className=<span class="string">"text-red-400 text-sm"</span>&gt;
+              This order would result in ₹{Math.abs(profit).toFixed(<span class="highlight">2</span>)} LOSS!
+            &lt;/p&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div className=<span class="string">"mt-3 bg-black/20 rounded-lg p-3 text-xs text-red-400/80"</span>&gt;
+          Selling: ₹{sellingPrice} - Coupon: ₹{couponDiscount} = ₹{netPrice} &lt; 
+          Landed Cost: ₹{landedCost.toFixed(<span class="highlight">2</span>)}
+        &lt;/div&gt;
+      &lt;/div&gt;
+    );
+  }
+
+  <span class="keyword">return</span> (
+    &lt;div className=<span class="string">"bg-green-500/10 border border-green-500/30 rounded-xl p-4"</span>&gt;
+      &lt;div className=<span class="string">"flex items-center justify-between"</span>&gt;
+        &lt;span className=<span class="string">"text-green-400"</span>&gt;✅ Profit Status: HEALTHY&lt;/span&gt;
+        &lt;span className=<span class="string">"text-green-400 font-bold"</span>&gt;+₹{profit.toFixed(<span class="highlight">2</span>)}&lt;/span&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  );
+}</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">🎨 Dark Mode Color Palette</div>
+            
+            <table>
+                <tr>
+                    <th>Element</th>
+                    <th>Color</th>
+                    <th>Hex Code</th>
+                </tr>
+                <tr>
+                    <td>Background</td>
+                    <td><div style="width: 30px; height: 20px; background: #000; border-radius: 4px;"></div></td>
+                    <td><code>#000000</code></td>
+                </tr>
+                <tr>
+                    <td>Card Background</td>
+                    <td><div style="width: 30px; height: 20px; background: #111; border-radius: 4px; border: 1px solid #333;"></div></td>
+                    <td><code>#111111</code></td>
+                </tr>
+                <tr>
+                    <td>Accent (Primary)</td>
+                    <td><div style="width: 30px; height: 20px; background: #f97316; border-radius: 4px;"></div></td>
+                    <td><code>#f97316</code></td>
+                </tr>
+                <tr>
+                    <td>Success/Profit</td>
+                    <td><div style="width: 30px; height: 20px; background: #22c55e; border-radius: 4px;"></div></td>
+                    <td><code>#22c55e</code></td>
+                </tr>
+                <tr>
+                    <td>Danger/Loss</td>
+                    <td><div style="width: 30px; height: 20px; background: #ef4444; border-radius: 4px;"></div></td>
+                    <td><code>#ef4444</code></td>
+                </tr>
+                <tr>
+                    <td>Warning</td>
+                    <td><div style="width: 30px; height: 20px; background: #fbbf24; border-radius: 4px;"></div></td>
+                    <td><code>#fbbf24</code></td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="footer">
+            <p>📘 SnapAlign SEO Guide 5: Manager's Financial Dashboard | Version 1.0 | July 2025</p>
+        </div>
+    </div>
+</body>
+</html>

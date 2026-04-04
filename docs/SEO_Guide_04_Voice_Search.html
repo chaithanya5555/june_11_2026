@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEO Guide 4: Visual & Voice Search - SnapAlign</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0a0a0a; color: #e5e5e5; line-height: 1.7; }
+        .page { max-width: 900px; margin: 0 auto; padding: 40px; background: #111; }
+        .header { background: linear-gradient(135deg, #f59e0b, #ef4444); padding: 40px; border-radius: 20px; text-align: center; margin-bottom: 30px; }
+        .header h1 { font-size: 2.2em; color: white; margin-bottom: 10px; }
+        .section { background: #1a1a1a; border: 1px solid #333; border-radius: 15px; padding: 25px; margin: 25px 0; }
+        .section-title { color: #f59e0b; font-size: 1.4em; margin-bottom: 15px; }
+        .code-block { background: #0d0d0d; border: 1px solid #333; border-radius: 10px; padding: 20px; font-family: 'Fira Code', monospace; font-size: 0.8em; overflow-x: auto; margin: 15px 0; color: #a5f3fc; white-space: pre; }
+        .highlight { color: #22c55e; }
+        .string { color: #fbbf24; }
+        .comment { color: #64748b; }
+        .voice-box { background: linear-gradient(135deg, #1e1b4b, #312e81); border: 2px solid #8b5cf6; border-radius: 15px; padding: 20px; margin: 20px 0; }
+        .faq-item { background: #222; border-radius: 10px; padding: 15px; margin: 10px 0; border-left: 4px solid #f59e0b; }
+        .faq-item h4 { color: #f59e0b; margin-bottom: 8px; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
+        th { background: #f59e0b; color: black; }
+        .info-box { background: #1e3a5f; border: 1px solid #3b82f6; border-radius: 10px; padding: 15px; margin: 15px 0; }
+        .page-break { page-break-before: always; margin-top: 40px; }
+        .footer { text-align: center; padding: 20px; color: #666; border-top: 1px solid #333; margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <h1>🎤 SEO Guide 4: Visual & Voice Search</h1>
+            <p>Conversational Alt-Text + "People Also Ask" FAQ Injection</p>
+        </div>
+
+        <div class="voice-box">
+            <h3 style="color: #c4b5fd; margin-bottom: 10px;">🗣️ Voice Search Optimization</h3>
+            <p>When users ask Alexa, Google Assistant, or Siri: <em>"Hey Google, find me a screen protector for Samsung S26 Ultra that works with fingerprint"</em> - your FAQ content appears as the answer.</p>
+        </div>
+
+        <div class="section">
+            <div class="section-title">🖼️ Conversational Alt-Text for Images</div>
+            <p>Replace generic alt text with natural, SEO-rich descriptions:</p>
+            
+            <div class="code-block"><span class="comment">// src/components/ProductImage.js - SEO-optimized image component</span>
+
+<span class="keyword">export default function</span> <span class="highlight">ProductImage</span>({ product }) {
+  <span class="comment">// Generate conversational alt text for visual search</span>
+  <span class="keyword">const</span> generateAltText = () => {
+    <span class="keyword">const</span> features = [];
+    
+    <span class="keyword">if</span> (product.features?.includes(<span class="string">'9H Hardness'</span>)) {
+      features.push(<span class="string">'9H hardness rated'</span>);
+    }
+    <span class="keyword">if</span> (product.features?.includes(<span class="string">'11D Full Cover'</span>)) {
+      features.push(<span class="string">'11D full cover edge-to-edge'</span>);
+    }
+    <span class="keyword">if</span> (product.features?.includes(<span class="string">'Free Install Kit'</span>)) {
+      features.push(<span class="string">'with easy-install alignment kit'</span>);
+    }
+    
+    <span class="keyword">return</span> <span class="string">`SnapAlign ${features.join(' ')} tempered glass screen protector for ${product.compatible_model} - Factory direct price ₹${product.price} in India`</span>;
+  };
+
+  <span class="keyword">return</span> (
+    &lt;figure className=<span class="string">"relative"</span>&gt;
+      &lt;img
+        src={product.image}
+        alt={generateAltText()}
+        title={<span class="string">`Buy ${product.name} online at SnapAlign India`</span>}
+        loading=<span class="string">"lazy"</span>
+        className=<span class="string">"w-full rounded-xl"</span>
+      /&gt;
+      &lt;figcaption className=<span class="string">"sr-only"</span>&gt;
+        {product.description}
+      &lt;/figcaption&gt;
+    &lt;/figure&gt;
+  );
+}</div>
+
+            <h4 style="margin-top: 20px; color: #f59e0b;">Alt-Text Examples by Phone:</h4>
+            <table>
+                <tr>
+                    <th>Phone Model</th>
+                    <th>Conversational Alt-Text</th>
+                </tr>
+                <tr>
+                    <td>iPhone 17 Pro Max</td>
+                    <td><code>"SnapAlign 9H hardness 11D full cover tempered glass screen protector for iPhone 17 Pro Max with easy-install alignment kit - Factory direct price ₹499 in India"</code></td>
+                </tr>
+                <tr>
+                    <td>Samsung S26 Ultra</td>
+                    <td><code>"SnapAlign curved edge 9H tempered glass for Samsung Galaxy S26 Ultra - Ultrasonic fingerprint sensor compatible with full adhesive fit - ₹549 India"</code></td>
+                </tr>
+                <tr>
+                    <td>Pixel 10 Pro Fold</td>
+                    <td><code>"SnapAlign foldable screen protector set for Google Pixel 10 Pro Fold - Inner TPU film plus outer 9H tempered glass - ₹699 free shipping India"</code></td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="section page-break">
+            <div class="section-title">❓ "People Also Ask" FAQ Section</div>
+            <p>Add this component to every product page to capture voice search queries:</p>
+            
+            <div class="code-block"><span class="comment">// src/components/ProductFAQ.js - Voice Search Optimized FAQ</span>
+
+<span class="keyword">export default function</span> <span class="highlight">ProductFAQ</span>({ product }) {
+  <span class="comment">// Dynamic FAQs based on phone type</span>
+  <span class="keyword">const</span> faqs = [
+    {
+      q: <span class="string">`Does this screen protector work with ${product.compatible_model} fingerprint sensor?`</span>,
+      a: <span class="string">`Yes! SnapAlign ${product.name} is specifically designed to work with ${product.brand === 'Samsung' ? 'ultrasonic fingerprint sensors' : 'Face ID and under-display sensors'}. Our precision-cut glass ensures 100% touch sensitivity.`</span>
+    },
+    {
+      q: <span class="string">`Is ${product.name} really 9H hardness?`</span>,
+      a: <span class="string">`Absolutely. SnapAlign uses premium 9H rated tempered glass - the highest hardness rating on the Mohs scale. It protects against keys, coins, and drops up to 1 meter.`</span>
+    },
+    {
+      q: <span class="string">`What's included in the box?`</span>,
+      a: <span class="string">`Every SnapAlign package includes: 1x 9H Tempered Glass, 1x Easy-Install Alignment Frame, 2x Dust Removal Stickers, 1x Microfiber Cleaning Cloth, 1x Wet & Dry Wipes, and Installation Instructions.`</span>
+    },
+    {
+      q: <span class="string">`How much does shipping cost to India?`</span>,
+      a: <span class="string">`Shipping is FREE on orders above ₹500. For orders below ₹500, shipping is just ₹49. We deliver across India in 3-5 business days.`</span>
+    },
+    {
+      q: <span class="string">`Is there a warranty on SnapAlign screen protectors?`</span>,
+      a: <span class="string">`Yes, all SnapAlign products come with a 30-day replacement warranty against manufacturing defects. Contact our WhatsApp support for instant help.`</span>
+    },
+    {
+      q: <span class="string">`Why is SnapAlign cheaper than other brands?`</span>,
+      a: <span class="string">`SnapAlign imports directly from factories via Alibaba - no middlemen, no retail markup. We pass the savings directly to you. Same quality as ₹1500+ brands at factory-direct prices.`</span>
+    }
+  ];
+
+  <span class="keyword">return</span> (
+    &lt;section className=<span class="string">"py-8 bg-[#0a0a0a]"</span>&gt;
+      &lt;div className=<span class="string">"max-w-3xl mx-auto px-4"</span>&gt;
+        &lt;h2 className=<span class="string">"text-2xl font-bold text-white mb-6 flex items-center gap-2"</span>&gt;
+          ❓ People Also Ask
+        &lt;/h2&gt;
+        
+        &lt;div className=<span class="string">"space-y-4"</span>&gt;
+          {faqs.map((faq, i) =&gt; (
+            &lt;details 
+              key={i} 
+              className=<span class="string">"bg-[#1a1a1a] border border-[#333] rounded-xl overflow-hidden group"</span>
+            &gt;
+              &lt;summary className=<span class="string">"px-6 py-4 cursor-pointer text-white font-medium hover:bg-[#222] transition-colors flex items-center justify-between"</span>&gt;
+                {faq.q}
+                &lt;span className=<span class="string">"text-[#f59e0b] group-open:rotate-180 transition-transform"</span>&gt;▼&lt;/span&gt;
+              &lt;/summary&gt;
+              &lt;div className=<span class="string">"px-6 py-4 border-t border-[#333] text-gray-400"</span>&gt;
+                {faq.a}
+              &lt;/div&gt;
+            &lt;/details&gt;
+          ))}
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+  );
+}</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">🎯 Voice Search Query Targets</div>
+            
+            <div class="faq-item">
+                <h4>🗣️ "Hey Siri, best iPhone 17 screen protector under 500 rupees"</h4>
+                <p><strong>Answer Target:</strong> "SnapAlign 11D Tempered Glass for iPhone 17 Pro Max at ₹499 - 9H hardness, free installation kit included."</p>
+            </div>
+
+            <div class="faq-item">
+                <h4>🗣️ "OK Google, does Samsung S26 tempered glass work with fingerprint?"</h4>
+                <p><strong>Answer Target:</strong> "Yes, SnapAlign S26 Ultra glass is designed for ultrasonic fingerprint sensors. Full adhesive ensures 100% touch response."</p>
+            </div>
+
+            <div class="faq-item">
+                <h4>🗣️ "Alexa, where to buy Pixel 10 screen protector in India?"</h4>
+                <p><strong>Answer Target:</strong> "SnapAlign offers Pixel 10 Pro Fold screen protectors at ₹699 with free shipping across India."</p>
+            </div>
+
+            <div class="faq-item">
+                <h4>🗣️ "What is 9H hardness in screen protector?"</h4>
+                <p><strong>Answer Target:</strong> "9H is the highest hardness rating on the Mohs scale. SnapAlign 9H glass protects against scratches from keys, coins, and everyday wear."</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">📱 Samsung-Specific FAQ Injection</div>
+            <p>Samsung users have unique concerns about curved screens and fingerprint sensors:</p>
+            
+            <div class="code-block"><span class="comment">// Samsung-specific FAQ answers</span>
+<span class="keyword">const</span> samsungFAQs = [
+  {
+    q: <span class="string">"Does this glass work with S26 ultrasonic fingerprint sensor?"</span>,
+    a: <span class="string">"Yes! SnapAlign uses UV-cured full adhesive technology that maintains 100% fingerprint sensor accuracy. No bubbles, no dead zones."</span>
+  },
+  {
+    q: <span class="string">"Will it fit the curved edges of S26 Ultra?"</span>,
+    a: <span class="string">"Absolutely. Our 3D curved glass is precision-molded to match the S26 Ultra's exact curvature. Edge-to-edge protection without lifting."</span>
+  },
+  {
+    q: <span class="string">"Is UV glue required for installation?"</span>,
+    a: <span class="string">"No UV lamp needed! SnapAlign S26 glass uses pre-applied adhesive. Just align with our frame and press - installs in 2 minutes."</span>
+  },
+  {
+    q: <span class="string">"Will it work with S-Pen on S26 Ultra?"</span>,
+    a: <span class="string">"Yes, SnapAlign glass maintains full S-Pen sensitivity. The 0.3mm thickness ensures smooth, precise stylus input."</span>
+  }
+];</div>
+        </div>
+
+        <div class="info-box">
+            <strong>📈 Expected SEO Impact:</strong><br>
+            • Featured Snippets: 40% more "People Also Ask" appearances<br>
+            • Voice Search: Captures "Hey Google/Alexa/Siri" queries<br>
+            • Visual Search: Google Lens and Pinterest recognition<br>
+            • Rich Results: Star ratings and price shown in search
+        </div>
+
+        <div class="footer">
+            <p>📘 SnapAlign SEO Guide 4: Visual & Voice Search | Version 1.0 | July 2025</p>
+        </div>
+    </div>
+</body>
+</html>
