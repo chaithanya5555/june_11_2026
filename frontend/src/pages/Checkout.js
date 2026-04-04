@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShoppingBag, CreditCard, Tag, ShieldCheck, Copy, Check, Clock, AlertCircle, QrCode, Smartphone, WhatsappLogo } from '@phosphor-icons/react';
+import { ArrowLeft, ShoppingBag, CreditCard, Tag, ShieldCheck, Copy, Check, Clock, WarningCircle, QrCode, DeviceMobile, WhatsappLogo } from '@phosphor-icons/react';
 import axios from 'axios';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -182,7 +182,7 @@ export default function Checkout() {
 
           <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-6">
             <div className="flex items-start gap-3">
-              <AlertCircle size={20} className="text-blue-400 flex-shrink-0 mt-0.5" />
+              <WarningCircle size={20} className="text-blue-400 flex-shrink-0 mt-0.5" />
               <div className="text-left">
                 <p className="text-blue-400 text-sm font-medium mb-1">Not verified in 1 hour?</p>
                 <p className="text-blue-400/70 text-xs">
@@ -254,7 +254,7 @@ export default function Checkout() {
                 {/* Instructions */}
                 <div className="flex-1">
                   <h3 className="text-white font-medium mb-4 flex items-center gap-2">
-                    <Smartphone size={18} className="text-[#007AFF]" />
+                    <DeviceMobile size={18} className="text-[#007AFF]" />
                     How to Pay
                   </h3>
                   
@@ -371,7 +371,7 @@ export default function Checkout() {
 
                 <div className="mt-4 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
                   <div className="flex items-start gap-2">
-                    <AlertCircle size={16} className="text-amber-400 flex-shrink-0 mt-0.5" />
+                    <WarningCircle size={16} className="text-amber-400 flex-shrink-0 mt-0.5" />
                     <p className="text-amber-400 text-xs">
                       After payment, enter your UTR number. Your order will be confirmed within 1 hour after verification.
                     </p>
