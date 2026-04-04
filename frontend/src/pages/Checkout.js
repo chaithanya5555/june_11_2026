@@ -15,7 +15,7 @@ export default function Checkout() {
   const { user, login } = useAuth();
   const { cartItems, cartTotal, cartCount, clearCart } = useCart();
   
-  const [step, setStep] = useState('checkout'); // 'checkout', 'payment', 'utr', 'verification'
+  const [step, setStep] = useState('checkout'); // 'checkout', 'address', 'payment', 'utr', 'verification'
   const [processing, setProcessing] = useState(false);
   const [couponCode, setCouponCode] = useState('');
   const [validating, setValidating] = useState(false);
@@ -26,6 +26,18 @@ export default function Checkout() {
   const [utr, setUtr] = useState('');
   const [copied, setCopied] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  
+  // Address fields
+  const [address, setAddress] = useState({
+    name: '',
+    phone: '',
+    addressLine1: '',
+    addressLine2: '',
+    city: '',
+    state: '',
+    pincode: ''
+  });
+  const [estimatedDelivery, setEstimatedDelivery] = useState('');
 
   const shipping = cartTotal >= 500 ? 0 : 49;
   const total = Math.max(0, cartTotal + shipping - discount);
@@ -62,19 +74,60 @@ export default function Checkout() {
     toast.info('Coupon removed');
   };
 
-  const handleProceedToPayment = async () => {
-    if (!user) {
-      setShowLoginPrompt(true);
+  // Calculate estimated delivery based on pincode
+  const calculateEstimatedDelivery = (pincode) => {
+    if (!pincode || pincode.length !== 6) return '';
+    
+    // Metro cities get faster delivery (2-3 days)
+    const metroPrefixes = ['400', '110', '560', '500', '600', '700', '411', '380', '462', '141'];
+    const prefix = pincode.substring(0, 3);
+    
+    const isMetro = metroPrefixes.some(p => pincode.startsWith(p));
+    const daysToAdd = isMetro ? 3 : 5;
+    
+    const deliveryDate = new Date();
+    deliveryDate.setDate(deliveryDate.getDate() + daysToAdd);
+    
+    const options = { weekday: 'short', month: 'short', day: 'numeric' };
+    return deliveryDate.toLocaleDateString('en-IN', options);
+  };
+
+  const handlePincodeChange = (value) => {
+    setAddress({ ...address, pincode: value });
+    if (value.length === 6) {
+      const delivery = calculateEstimatedDelivery(value);
+      setEstimatedDelivery(delivery);
+    } else {
+      setEstimatedDelivery('');
+    }
+  };
+
+  const handleAddressSubmit = async () => {
+    // Validate address
+    if (!address.name || !address.phone || !address.addressLine1 || !address.city || !address.state || !address.pincode) {
+      toast.error('Please fill all required fields');
       return;
     }
     
+    if (address.phone.length !== 10) {
+      toast.error('Please enter a valid 10-digit phone number');
+      return;
+    }
+    
+    if (address.pincode.length !== 6) {
+      toast.error('Please enter a valid 6-digit pincode');
+      return;
+    }
+    
+    // Create order with address
     setProcessing(true);
     try {
-      // Create manual UPI order
       const r = await axios.post(`${API}/payment/manual-upi/create-order`, {
         origin_url: window.location.origin,
         payment_method: 'manual_upi',
-        coupon_code: couponApplied?.code || null
+        coupon_code: couponApplied?.code || null,
+        shipping_address: address,
+        estimated_delivery: estimatedDelivery
       }, { withCredentials: true });
       
       setOrderData(r.data);
@@ -83,6 +136,16 @@ export default function Checkout() {
       toast.error(e.response?.data?.detail || 'Failed to create order');
     }
     setProcessing(false);
+  };
+
+  const handleProceedToPayment = async () => {
+    if (!user) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    
+    // Move to address step instead of directly to payment
+    setStep('address');
   };
 
   const copyUPI = () => {
@@ -206,6 +269,149 @@ export default function Checkout() {
               className="flex-1 bg-[#007AFF] hover:bg-[#005BB5] text-white rounded-lg h-12"
             >
               Back to Home
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Address collection step
+  if (step === 'address') {
+    return (
+      <div className="min-h-screen bg-black">
+        <div className="max-w-2xl mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-8">
+            <button onClick={() => setStep('checkout')} className="text-white/50 hover:text-white">
+              <ArrowLeft size={20} />
+            </button>
+            <h1 className="text-xl font-medium text-white">Delivery Address</h1>
+          </div>
+
+          <div className="bg-[#0A0A0A] border border-white/10 rounded-2xl p-6">
+            <div className="space-y-4">
+              {/* Name */}
+              <div>
+                <label className="text-sm text-white/70 mb-2 block">Full Name *</label>
+                <Input
+                  value={address.name}
+                  onChange={(e) => setAddress({ ...address, name: e.target.value })}
+                  placeholder="Enter your full name"
+                  className="bg-white/5 border-white/10 text-white"
+                />
+              </div>
+
+              {/* Phone */}
+              <div>
+                <label className="text-sm text-white/70 mb-2 block">Phone Number *</label>
+                <Input
+                  value={address.phone}
+                  onChange={(e) => setAddress({ ...address, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                  placeholder="10-digit mobile number"
+                  className="bg-white/5 border-white/10 text-white"
+                  maxLength={10}
+                />
+              </div>
+
+              {/* Address Line 1 */}
+              <div>
+                <label className="text-sm text-white/70 mb-2 block">Address Line 1 *</label>
+                <Input
+                  value={address.addressLine1}
+                  onChange={(e) => setAddress({ ...address, addressLine1: e.target.value })}
+                  placeholder="House no, Building, Street"
+                  className="bg-white/5 border-white/10 text-white"
+                />
+              </div>
+
+              {/* Address Line 2 */}
+              <div>
+                <label className="text-sm text-white/70 mb-2 block">Address Line 2 (Optional)</label>
+                <Input
+                  value={address.addressLine2}
+                  onChange={(e) => setAddress({ ...address, addressLine2: e.target.value })}
+                  placeholder="Apartment, Suite, Landmark"
+                  className="bg-white/5 border-white/10 text-white"
+                />
+              </div>
+
+              {/* City & State */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-white/70 mb-2 block">City *</label>
+                  <Input
+                    value={address.city}
+                    onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                    placeholder="City"
+                    className="bg-white/5 border-white/10 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-white/70 mb-2 block">State *</label>
+                  <Input
+                    value={address.state}
+                    onChange={(e) => setAddress({ ...address, state: e.target.value })}
+                    placeholder="State"
+                    className="bg-white/5 border-white/10 text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Pincode */}
+              <div>
+                <label className="text-sm text-white/70 mb-2 block">Pincode *</label>
+                <Input
+                  value={address.pincode}
+                  onChange={(e) => handlePincodeChange(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="6-digit pincode"
+                  className="bg-white/5 border-white/10 text-white"
+                  maxLength={6}
+                />
+                {estimatedDelivery && (
+                  <div className="mt-3 bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck size={16} className="text-green-400" />
+                      <span className="text-green-400 text-sm">
+                        Estimated Delivery: <strong>{estimatedDelivery}</strong>
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Order Summary */}
+            <div className="mt-6 pt-6 border-t border-white/10">
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-white/50">Subtotal</span>
+                <span className="text-white">₹{cartTotal.toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-white/50">Shipping</span>
+                <span className={shipping === 0 ? 'text-green-400' : 'text-white'}>
+                  {shipping === 0 ? 'Free' : `₹${shipping}`}
+                </span>
+              </div>
+              {discount > 0 && (
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-green-400">Discount</span>
+                  <span className="text-green-400">-₹{discount.toFixed(0)}</span>
+                </div>
+              )}
+              <div className="flex justify-between pt-2 border-t border-white/10">
+                <span className="text-base font-medium text-white">Total</span>
+                <span className="text-xl font-semibold text-white">₹{total.toLocaleString('en-IN')}</span>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <Button
+              onClick={handleAddressSubmit}
+              disabled={processing}
+              className="w-full bg-[#007AFF] hover:bg-[#005BB5] text-white rounded-lg h-12 text-sm font-medium mt-6"
+            >
+              {processing ? 'Processing...' : 'Proceed to Payment'}
             </Button>
           </div>
         </div>
