@@ -55,6 +55,17 @@ PRODUCT_CATEGORIES = {
     }
 }
 
+def get_product_image_url(category, brand, model):
+    """Get appropriate generic product image based on category"""
+    # Use real product images from Unsplash
+    category_images = {
+        "Tempered Glass": "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=400&h=500&fit=crop",
+        "Cases": "https://images.unsplash.com/photo-1574683189522-9c5a95f78b76?w=400&h=500&fit=crop",
+        "Camera Lens Protector": "https://images.unsplash.com/photo-1616348436168-de43ad0db179?w=400&h=500&fit=crop",
+        "Screen Protector": "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=400&h=500&fit=crop"
+    }
+    return category_images.get(category, "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=400&h=500&fit=crop")
+
 def generate_seo_optimized_name(brand, model, category, subcategory):
     """
     Generate SEO-optimized product names to rank for searches like:
@@ -89,6 +100,8 @@ async def seed_products():
                     price_min, price_max = details["price_range"]
                     compare_price = price_max + 200  # Show discount
                     
+                    base_img = get_product_image_url(category, brand, model)
+                    
                     product = {
                         "id": str(uuid.uuid4()),
                         "product_id": str(uuid.uuid4()),  # Add product_id for compatibility
@@ -101,11 +114,8 @@ async def seed_products():
                         "subcategory": subcategory,
                         "brand": brand,
                         "device_model": model,
-                        "image": f"https://placehold.co/400x500/1a1a1a/007AFF?text={subcategory.replace(' ', '+')}+{brand}+{model.replace(' ', '+')}",
-                        "images": [
-                            f"https://placehold.co/400x500/1a1a1a/007AFF?text={subcategory.replace(' ', '+')}+{brand}+{model.replace(' ', '+')}+1",
-                            f"https://placehold.co/400x500/1a1a1a/007AFF?text={subcategory.replace(' ', '+')}+{brand}+{model.replace(' ', '+')}+2",
-                        ],
+                        "image": base_img,
+                        "images": [base_img, base_img],
                         "stock": 50,
                         "featured": product_count < 12,  # First 12 are featured
                         "bin_location": f"A{(product_count % 10) + 1}",

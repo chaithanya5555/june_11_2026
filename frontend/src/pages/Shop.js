@@ -16,11 +16,13 @@ export default function Shop() {
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
+  const [deviceModels, setDeviceModels] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   
   const category = searchParams.get('category') || '';
   const subcategory = searchParams.get('subcategory') || '';
   const brand = searchParams.get('brand') || '';
+  const deviceModel = searchParams.get('device_model') || '';
   const search = searchParams.get('search') || '';
   const sort = searchParams.get('sort') || '';
   
@@ -41,6 +43,23 @@ export default function Shop() {
       }
     })();
   }, []);
+
+  // Fetch device models when brand changes
+  useEffect(() => {
+    if (brand) {
+      (async () => {
+        try {
+          const res = await axios.get(`${API}/products?brand=${brand}`);
+          const models = [...new Set(res.data.map(p => p.device_model))].sort();
+          setDeviceModels(models);
+        } catch (e) {
+          setDeviceModels([]);
+        }
+      })();
+    } else {
+      setDeviceModels([]);
+    }
+  }, [brand]);
 
   // Fetch subcategories when category changes
   useEffect(() => {
@@ -83,9 +102,12 @@ export default function Shop() {
     const newParams = new URLSearchParams(searchParams);
     if (value) {
       newParams.set(key, value);
-      // Clear subcategory if category changes
+      // Clear dependent filters
       if (key === 'category' && newParams.get('subcategory')) {
         newParams.delete('subcategory');
+      }
+      if (key === 'brand' && newParams.get('device_model')) {
+        newParams.delete('device_model');
       }
     } else {
       newParams.delete(key);
@@ -103,7 +125,7 @@ export default function Shop() {
     setFilter('search', searchInput);
   };
 
-  const activeFiltersCount = [category, subcategory, brand, search].filter(Boolean).length;
+  const activeFiltersCount = [category, subcategory, brand, deviceModel, search].filter(Boolean).length;
 
   return (
     <div data-testid="shop-page" className="min-h-screen bg-black">
@@ -175,7 +197,7 @@ export default function Shop() {
         {/* Expandable Filters */}
         {showFilters && (
           <div className="bg-[#0A0A0A] border border-white/10 rounded-xl p-6 mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* Brand Filter */}
               <div>
                 <label className="text-sm text-white/70 mb-2 block">Brand</label>
@@ -187,6 +209,26 @@ export default function Shop() {
                     <SelectItem value="all">All Brands</SelectItem>
                     {brands.map(b => (
                       <SelectItem key={b} value={b}>{b}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Device Model Filter */}
+              <div>
+                <label className="text-sm text-white/70 mb-2 block">Phone Model</label>
+                <Select 
+                  value={deviceModel || 'all'} 
+                  onValueChange={v => setFilter('device_model', v === 'all' ? '' : v)}
+                  disabled={!brand}
+                >
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white disabled:opacity-50">
+                    <SelectValue placeholder={brand ? "All Models" : "Select brand first"} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0A0A0A] border-white/10 max-h-60 overflow-y-auto">
+                    <SelectItem value="all">All Models</SelectItem>
+                    {deviceModels.map(m => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -219,7 +261,7 @@ export default function Shop() {
                   <SelectTrigger className="bg-white/5 border-white/10 text-white disabled:opacity-50">
                     <SelectValue placeholder={category ? "All Types" : "Select category first"} />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#0A0A0A] border-white/10">
+                  <SelectContent className="bg-[#0A0A0A] border-white/10 max-h-60 overflow-y-auto">
                     <SelectItem value="all">All Types</SelectItem>
                     {subcategories.map(s => (
                       <SelectItem key={s} value={s}>{s}</SelectItem>
@@ -238,6 +280,14 @@ export default function Shop() {
               <div className="bg-[#007AFF]/20 border border-[#007AFF]/30 rounded-lg px-3 py-1 flex items-center gap-2">
                 <span className="text-xs text-[#007AFF]">Brand: {brand}</span>
                 <button onClick={() => setFilter('brand', '')} className="text-[#007AFF] hover:text-white">
+                  <X size={12} />
+                </button>
+              </div>
+            )}
+            {deviceModel && (
+              <div className="bg-[#007AFF]/20 border border-[#007AFF]/30 rounded-lg px-3 py-1 flex items-center gap-2">
+                <span className="text-xs text-[#007AFF]">Model: {deviceModel}</span>
+                <button onClick={() => setFilter('device_model', '')} className="text-[#007AFF] hover:text-white">
                   <X size={12} />
                 </button>
               </div>

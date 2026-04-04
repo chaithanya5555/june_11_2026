@@ -1,20 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { List, X, ShoppingBag, Heart, MagnifyingGlass, House, Storefront, Package, User, Gauge, SignOut, WhatsappLogo } from '@phosphor-icons/react';
+import { List, X, ShoppingBag, Heart, MagnifyingGlass, House, Storefront, Package, User, Gauge, SignOut, WhatsappLogo, CaretDown, CaretRight } from '@phosphor-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import { Sheet, SheetContent, SheetTrigger } from '../components/ui/sheet';
 import { Button } from '../components/ui/button';
 import CartSheet from './CartSheet';
+import axios from 'axios';
 
-const NAV_LINKS = [
-  { to: '/', label: 'Home', icon: <House size={18} /> },
-  { to: '/shop', label: 'All Products', icon: <Storefront size={18} /> },
-  { to: '/shop?category=Tempered+Glass', label: 'Tempered Glass' },
-  { to: '/shop?category=Cases', label: 'Cases' },
-  { to: '/shop?category=Holders', label: 'Holders' },
-  { to: '/shop?category=Cables+%26+Chargers', label: 'Cables & Chargers' },
-  { to: '/track', label: 'Track Order', icon: <Package size={18} /> },
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+const CATEGORIES = [
+  { label: 'Tempered Glass', value: 'Tempered Glass' },
+  { label: 'Cases', value: 'Cases' },
+  { label: 'Camera Lens Protector', value: 'Camera Lens Protector' },
+  { label: 'Screen Protector', value: 'Screen Protector' },
 ];
 
 export default function Navbar() {
@@ -23,7 +23,20 @@ export default function Navbar() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedCategory, setExpandedCategory] = useState(null);
+  const [subcategories, setSubcategories] = useState({});
   const navigate = useNavigate();
+
+  // Fetch subcategories for each category
+  useEffect(() => {
+    CATEGORIES.forEach(cat => {
+      axios.get(`${API}/subcategories?category=${encodeURIComponent(cat.value)}`)
+        .then(res => {
+          setSubcategories(prev => ({ ...prev, [cat.value]: res.data }));
+        })
+        .catch(console.error);
+    });
+  }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -31,7 +44,22 @@ export default function Navbar() {
       navigate(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery('');
       setSearchOpen(false);
+      setSidebarOpen(false);
     }
+  };
+
+  const toggleCategory = (category) => {
+    setExpandedCategory(expandedCategory === category ? null : category);
+  };
+
+  const handleCategoryClick = (category) => {
+    navigate(`/shop?category=${encodeURIComponent(category)}`);
+    setSidebarOpen(false);
+  };
+
+  const handleSubcategoryClick = (category, subcategory) => {
+    navigate(`/shop?category=${encodeURIComponent(category)}&subcategory=${encodeURIComponent(subcategory)}`);
+    setSidebarOpen(false);
   };
 
   return (
@@ -104,12 +132,64 @@ export default function Navbar() {
               <button data-testid="sidebar-close" onClick={() => setSidebarOpen(false)} className="p-1 text-white/50 hover:text-white"><X size={20} /></button>
             </div>
             <div className="flex-1 overflow-y-auto py-4">
-              {NAV_LINKS.map(link => (
-                <Link key={link.to} to={link.to} onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors">
-                  {link.icon || <div className="w-[18px]" />}
-                  {link.label}
-                </Link>
+              {/* Home */}
+              <Link to="/" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors">
+                <House size={18} />
+                Home
+              </Link>
+              
+              {/* All Products */}
+              <Link to="/shop" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors">
+                <Storefront size={18} />
+                All Products
+              </Link>
+
+              {/* Categories with Subcategories */}
+              {CATEGORIES.map(cat => (
+                <div key={cat.value}>
+                  <div className="flex items-center justify-between px-4 py-3 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors">
+                    <button 
+                      onClick={() => handleCategoryClick(cat.value)}
+                      className="flex-1 text-left"
+                    >
+                      {cat.label}
+                    </button>
+                    {subcategories[cat.value]?.length > 0 && (
+                      <button 
+                        onClick={() => toggleCategory(cat.value)}
+                        className="p-1 hover:bg-white/10 rounded"
+                      >
+                        {expandedCategory === cat.value ? (
+                          <CaretDown size={14} />
+                        ) : (
+                          <CaretRight size={14} />
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* Subcategories */}
+                  {expandedCategory === cat.value && subcategories[cat.value]?.length > 0 && (
+                    <div className="bg-white/5 py-2">
+                      {subcategories[cat.value].map(sub => (
+                        <button
+                          key={sub}
+                          onClick={() => handleSubcategoryClick(cat.value, sub)}
+                          className="w-full text-left px-8 py-2 text-xs text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+                        >
+                          {sub}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
+
+              {/* Track Order */}
+              <Link to="/track" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors">
+                <Package size={18} />
+                Track Order
+              </Link>
             </div>
             <div className="border-t border-white/10 p-4">
               {user ? (
