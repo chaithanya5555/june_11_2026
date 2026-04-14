@@ -6,7 +6,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://align-snap-test.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://file-validator-15.preview.emergentagent.com').rstrip('/')
 
 class TestAdminRBAC:
     """Test Role-Based Access Control for Admin Users"""
