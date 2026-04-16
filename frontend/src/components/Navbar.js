@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { List, X, ShoppingBag, Heart, MagnifyingGlass, House, Storefront, Package, User, Gauge, SignOut, WhatsappLogo, CaretDown, CaretRight } from '@phosphor-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
@@ -26,6 +26,12 @@ export default function Navbar() {
   const [expandedCategory, setExpandedCategory] = useState(null);
   const [subcategories, setSubcategories] = useState({});
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Hide entire public navbar on admin routes (admin dashboard has its own header/auth)
+  const isAdminRoute = location.pathname.startsWith('/admin');
+  // Hide WhatsApp float on checkout & admin to keep these screens focused
+  const hideWhatsAppFloat = isAdminRoute || location.pathname.startsWith('/checkout');
 
   // Fetch subcategories for each category
   useEffect(() => {
@@ -61,6 +67,12 @@ export default function Navbar() {
     navigate(`/shop?category=${encodeURIComponent(category)}&subcategory=${encodeURIComponent(subcategory)}`);
     setSidebarOpen(false);
   };
+
+  if (isAdminRoute) {
+    // Admin has its own layout; render nothing from public navbar to avoid
+    // leaking customer profile/avatar into admin pages.
+    return null;
+  }
 
   return (
     <>
@@ -218,10 +230,12 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* WhatsApp Float */}
-      <a data-testid="whatsapp-float" href="https://wa.me/919999999999?text=Hi%20SnapAlign%2C%20I%20need%20help" target="_blank" rel="noopener noreferrer" className="fixed bottom-6 right-6 z-[100] p-4 rounded-full shadow-[0_8px_32px_rgba(37,211,102,0.3)] hover:scale-110 transition-transform" style={{ backgroundColor: '#25D366' }}>
-        <WhatsappLogo size={24} weight="fill" className="text-white" />
-      </a>
+      {/* WhatsApp Float (hidden on checkout & admin pages) */}
+      {!hideWhatsAppFloat && (
+        <a data-testid="whatsapp-float" href="https://wa.me/919999999999?text=Hi%20SnapAlign%2C%20I%20need%20help" target="_blank" rel="noopener noreferrer" className="fixed bottom-6 right-6 z-[100] p-4 rounded-full shadow-[0_8px_32px_rgba(37,211,102,0.3)] hover:scale-110 transition-transform" style={{ backgroundColor: '#25D366' }}>
+          <WhatsappLogo size={24} weight="fill" className="text-white" />
+        </a>
+      )}
     </>
   );
 }

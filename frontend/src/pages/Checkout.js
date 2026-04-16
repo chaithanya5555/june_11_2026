@@ -554,60 +554,29 @@ export default function Checkout() {
             </Button>
           </div>
         ) : (
-          <div className="grid lg:grid-cols-5 gap-8">
-            {/* Left: Payment Info */}
-            <div className="lg:col-span-3 space-y-6">
-              {/* UPI Payment Info */}
-              <div className="bg-[#0A0A0A] border border-white/10 rounded-xl p-5">
-                <h2 className="text-base font-medium text-white mb-4 flex items-center gap-2" style={{ fontFamily: 'var(--font-heading)' }}>
-                  <CreditCard size={18} className="text-[#007AFF]" /> Payment Method
-                </h2>
-                
-                <div className="bg-gradient-to-r from-[#007AFF]/10 to-purple-500/10 border border-[#007AFF]/30 rounded-xl p-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-[#007AFF]/20 rounded-xl flex items-center justify-center">
-                      <QrCode size={24} className="text-[#007AFF]" />
+          <div className="grid lg:grid-cols-5 gap-6 lg:gap-8">
+            {/* Order Items — mobile: FIRST (top), desktop: left column row 2 */}
+            <div className="order-1 lg:order-none lg:col-start-1 lg:col-span-3 lg:row-start-2 bg-[#0A0A0A] border border-white/10 rounded-xl p-5">
+              <h3 className="text-sm font-medium text-white mb-4">Order Items ({cartCount})</h3>
+              <div className="space-y-3">
+                {cartItems.map(item => (
+                  <div key={item.product_id} className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
+                    <div className="w-12 h-12 bg-white/5 rounded-lg overflow-hidden flex-shrink-0">
+                      <img src={item.product?.image} alt="" className="w-full h-full object-cover" />
                     </div>
-                    <div>
-                      <p className="text-white font-medium">UPI Payment (Scan & Pay)</p>
-                      <p className="text-white/50 text-xs">Pay via PhonePe, GPay, Paytm or any UPI app</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-white truncate">{item.product?.name}</p>
+                      <p className="text-[10px] text-white/40">Qty: {item.quantity}</p>
                     </div>
+                    <p className="text-sm font-medium text-white">₹{(item.product?.price * item.quantity).toLocaleString('en-IN')}</p>
                   </div>
-                </div>
-
-                <div className="mt-4 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
-                  <div className="flex items-start gap-2">
-                    <WarningCircle size={16} className="text-amber-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-amber-400 text-xs">
-                      After payment, enter your UTR number. Your order will be confirmed within 1 hour after verification.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Order Items */}
-              <div className="bg-[#0A0A0A] border border-white/10 rounded-xl p-5">
-                <h3 className="text-sm font-medium text-white mb-4">Order Items ({cartCount})</h3>
-                <div className="space-y-3">
-                  {cartItems.map(item => (
-                    <div key={item.product_id} className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
-                      <div className="w-12 h-12 bg-white/5 rounded-lg overflow-hidden flex-shrink-0">
-                        <img src={item.product?.image} alt="" className="w-full h-full object-cover" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-white truncate">{item.product?.name}</p>
-                        <p className="text-[10px] text-white/40">Qty: {item.quantity}</p>
-                      </div>
-                      <p className="text-sm font-medium text-white">₹{(item.product?.price * item.quantity).toLocaleString('en-IN')}</p>
-                    </div>
-                  ))}
-                </div>
+                ))}
               </div>
             </div>
 
-            {/* Right: Order Summary */}
-            <div className="lg:col-span-2">
-              <div className="sticky top-20 border border-white/10 rounded-xl p-5 bg-[#0A0A0A]">
+            {/* Order Summary — mobile: SECOND, desktop: right column spanning both rows */}
+            <div className="order-2 lg:order-none lg:col-start-4 lg:col-span-2 lg:row-start-1 lg:row-span-2">
+              <div className="lg:sticky lg:top-20 border border-white/10 rounded-xl p-5 bg-[#0A0A0A]">
                 <h2 className="text-base font-medium mb-4 text-white" style={{ fontFamily: 'var(--font-heading)' }}>Order Summary</h2>
 
                 {/* Coupon Input */}
@@ -660,9 +629,11 @@ export default function Checkout() {
                 </div>
 
                 <Button 
+                  data-testid="checkout-pay-btn"
+                  type="button"
                   onClick={handleProceedToPayment} 
                   disabled={processing} 
-                  className="w-full bg-[#007AFF] hover:bg-[#005BB5] text-white rounded-lg h-12 text-sm font-medium mt-4"
+                  className="relative z-10 w-full bg-[#007AFF] hover:bg-[#005BB5] active:bg-[#004a99] text-white rounded-lg h-12 text-sm font-medium mt-4 touch-manipulation"
                 >
                   {processing ? 'Processing...' : `Pay ₹${total.toLocaleString('en-IN')}`}
                 </Button>
@@ -670,6 +641,34 @@ export default function Checkout() {
                 <div className="flex items-center gap-1 justify-center mt-3">
                   <ShieldCheck size={12} className="text-green-400" />
                   <span className="text-[10px] text-white/30">100% Secure Payment</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Method info — mobile: THIRD (bottom), desktop: left column row 1 */}
+            <div className="order-3 lg:order-none lg:col-start-1 lg:col-span-3 lg:row-start-1 bg-[#0A0A0A] border border-white/10 rounded-xl p-5">
+              <h2 className="text-base font-medium text-white mb-4 flex items-center gap-2" style={{ fontFamily: 'var(--font-heading)' }}>
+                <CreditCard size={18} className="text-[#007AFF]" /> Payment Method
+              </h2>
+
+              <div className="bg-gradient-to-r from-[#007AFF]/10 to-purple-500/10 border border-[#007AFF]/30 rounded-xl p-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-[#007AFF]/20 rounded-xl flex items-center justify-center">
+                    <QrCode size={24} className="text-[#007AFF]" />
+                  </div>
+                  <div>
+                    <p className="text-white font-medium">UPI Payment (Scan & Pay)</p>
+                    <p className="text-white/50 text-xs">Pay via PhonePe, GPay, Paytm or any UPI app</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <WarningCircle size={16} className="text-amber-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-amber-400 text-xs">
+                    After payment, enter your UTR number. Your order will be confirmed within 1 hour after verification.
+                  </p>
                 </div>
               </div>
             </div>
