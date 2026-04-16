@@ -7,7 +7,7 @@ import requests
 import os
 from datetime import datetime
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://file-validator-15.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://login-preview-10.preview.emergentagent.com')
 
 class TestHealthAndProducts:
     """Health check and product catalog tests"""
