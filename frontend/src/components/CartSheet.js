@@ -3,6 +3,7 @@ import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
+import { SheetClose } from '../components/ui/sheet';
 
 export default function CartSheet() {
   const { cartItems, updateQuantity, removeFromCart, cartTotal, cartCount } = useCart();
@@ -23,7 +24,9 @@ export default function CartSheet() {
       <div className="flex flex-col items-center justify-center h-full p-8">
         <ShoppingBag size={48} className="text-white/20 mb-4" />
         <p className="text-white/50 mb-4 text-sm text-center">Sign in to view your cart</p>
-        <Button data-testid="cart-signin-btn" onClick={login} className="bg-[#007AFF] hover:bg-[#005BB5] text-white rounded-lg px-6">Sign In</Button>
+        <SheetClose asChild>
+          <Button data-testid="cart-signin-btn" onClick={login} className="bg-[#007AFF] hover:bg-[#005BB5] text-white rounded-lg px-6">Sign In</Button>
+        </SheetClose>
       </div>
     );
   }
@@ -33,7 +36,9 @@ export default function CartSheet() {
       <div className="flex flex-col items-center justify-center h-full p-8">
         <ShoppingBag size={48} className="text-white/20 mb-4" />
         <p className="text-sm text-white/50 mb-4">Your cart is empty</p>
-        <Button data-testid="cart-shop-btn" onClick={() => navigate('/shop')} variant="outline" className="rounded-lg border-white/20 text-white hover:bg-white/5">Start Shopping</Button>
+        <SheetClose asChild>
+          <Button data-testid="cart-shop-btn" onClick={() => navigate('/shop')} variant="outline" className="rounded-lg border-white/20 text-white hover:bg-white/5">Start Shopping</Button>
+        </SheetClose>
       </div>
     );
   }
@@ -67,9 +72,11 @@ export default function CartSheet() {
           <span className="text-sm text-white/50">Subtotal</span>
           <span data-testid="cart-total" className="text-lg font-semibold text-white">&#8377;{cartTotal.toLocaleString('en-IN')}</span>
         </div>
-        <Button data-testid="cart-checkout-btn" onClick={handleCheckout} className="w-full bg-[#007AFF] hover:bg-[#005BB5] text-white rounded-lg h-11 text-sm font-medium">
-          Checkout <ArrowRight size={14} className="ml-1.5" />
-        </Button>
+        <SheetClose asChild>
+          <Button data-testid="cart-checkout-btn" onClick={handleCheckout} className="w-full bg-[#007AFF] hover:bg-[#005BB5] text-white rounded-lg h-11 text-sm font-medium">
+            Checkout <ArrowRight size={14} className="ml-1.5" />
+          </Button>
+        </SheetClose>
       </div>
     </div>
   );

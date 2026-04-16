@@ -43,6 +43,8 @@ export default function Checkout() {
   const total = Math.max(0, cartTotal + shipping - discount);
 
   useEffect(() => {
+    // Scroll to top on mount so mobile users immediately see the cart items at the top
+    window.scrollTo(0, 0);
     // Fetch UPI config on load
     axios.get(`${API}/payment/upi-config`)
       .then(r => setUpiConfig(r.data))
