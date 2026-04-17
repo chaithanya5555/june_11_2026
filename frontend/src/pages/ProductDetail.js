@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Star, Heart, Minus, Plus, ShoppingBag, ArrowLeft, Truck, ShieldCheck, Globe, CaretLeft, CaretRight, Play } from '@phosphor-icons/react';
 import axios from 'axios';
@@ -22,6 +22,7 @@ export default function ProductDetail() {
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [activeSlide, setActiveSlide] = useState(0);
   const [touchStartX, setTouchStartX] = useState(null);
+  const videoRef = useRef(null);
 
   useEffect(() => {
     (async () => {
@@ -36,6 +37,45 @@ export default function ProductDetail() {
       setLoading(false);
     })();
   }, [id]);
+
+  // Auto-play the product video when user lands on the video slide; pause otherwise.
+  // Muted + playsInline so browsers permit autoplay (especially iOS Safari).
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid) return;
+    if (product && product.video && activeSlide === (((product.images && product.images.length > 0) ? product.images.length : 1))) {
+      // We're on the video slide — play from start, muted
+      vid.muted = true;
+      // Force load in case it was skipped while hidden
+      try { vid.load(); } catch (_) {}
+      const tryPlay = () => {
+        try { vid.currentTime = 0; } catch (_) {}
+        const p = vid.play();
+        if (p && typeof p.catch === 'function') {
+          p.catch(() => { /* autoplay blocked — user can press play */ });
+        }
+      };
+      if (vid.readyState >= 2) {
+        tryPlay();
+      } else {
+        // Wait for browser to load enough data then play
+        const onCanPlay = () => {
+          tryPlay();
+          vid.removeEventListener('canplay', onCanPlay);
+        };
+        vid.addEventListener('canplay', onCanPlay);
+        // safety: try again after 600ms regardless
+        const t = setTimeout(tryPlay, 600);
+        return () => {
+          clearTimeout(t);
+          vid.removeEventListener('canplay', onCanPlay);
+        };
+      }
+    } else {
+      // Leaving the video slide → pause
+      try { vid.pause(); } catch (_) {}
+    }
+  }, [activeSlide, product]);
 
   const currentPrice = product ? product.price + (selectedVariant?.price_modifier || 0) : 0;
 
@@ -79,6 +119,7 @@ export default function ProductDetail() {
     ...galleryImages.map((url) => ({ kind: 'image', url })),
     ...(product.video ? [{ kind: 'video', url: product.video }] : []),
   ];
+  const videoSlideIndex = product.video ? slides.length - 1 : -1;
   const goPrev = () => setActiveSlide((i) => (i - 1 + slides.length) % slides.length);
   const goNext = () => setActiveSlide((i) => (i + 1) % slides.length);
   const onTouchStart = (e) => setTouchStartX(e.touches[0].clientX);
@@ -112,10 +153,13 @@ export default function ProductDetail() {
                     <img src={slide.url} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" />
                   ) : (
                     <video
+                      ref={videoRef}
                       src={slide.url}
                       controls
+                      muted
                       playsInline
-                      preload="metadata"
+                      loop
+                      preload="auto"
                       className="w-full h-full object-cover bg-black"
                     />
                   )}

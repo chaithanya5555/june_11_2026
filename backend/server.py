@@ -1,5 +1,6 @@
 from fastapi import FastAPI, APIRouter, Request, HTTPException, Response
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -1291,8 +1292,9 @@ async def seed_products():
             "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=800&q=80",
             "https://images.unsplash.com/photo-1520923642038-b4259acecbd7?w=800&q=80",
         ]
-        # Generic product demo video (admin can replace)
-        p["video"] = "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4"
+        # Generic product demo video served from our own backend
+        # (admin can replace with any mp4 URL per-product later)
+        p["video"] = "/api/static/video/product-demo.mp4"
     await db.products.insert_many(products)
     return {"message": f"Seeded {len(products)} products"}
 
@@ -1332,6 +1334,12 @@ async def seed_admin_users():
 
 # ── Include Router & Middleware ──
 app.include_router(api_router)
+
+# Serve static assets (product demo video etc.) at /api/static/*
+# Using /api prefix so Kubernetes ingress routes to the backend.
+STATIC_DIR = ROOT_DIR / "static"
+STATIC_DIR.mkdir(exist_ok=True)
+app.mount("/api/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 app.add_middleware(
     CORSMiddleware,
