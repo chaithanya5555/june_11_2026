@@ -82,6 +82,9 @@ class ProductCreate(BaseModel):
     featured: bool = False
     bin_location: str = ""
     variants: Optional[List[dict]] = None
+    warranty: Optional[str] = None  # e.g., "1 Year", "6 Months", None = no warranty
+    images: Optional[List[str]] = None  # Additional gallery images (main `image` is always shown first)
+    video: Optional[str] = None  # Product video URL (mp4 or YouTube embed)
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
@@ -95,6 +98,9 @@ class ProductUpdate(BaseModel):
     featured: Optional[bool] = None
     bin_location: Optional[str] = None
     variants: Optional[List[dict]] = None
+    warranty: Optional[str] = None
+    images: Optional[List[str]] = None
+    video: Optional[str] = None
 
 class CartItemAdd(BaseModel):
     product_id: str
@@ -1078,7 +1084,9 @@ async def admin_create_product(product: ProductCreate, request: Request):
 @api_router.put("/admin/products/{product_id}")
 async def admin_update_product(product_id: str, update: ProductUpdate, request: Request):
     await require_admin(request)
-    update_data = {k: v for k, v in update.model_dump().items() if v is not None}
+    # Use exclude_unset so explicit `null` from client IS saved (needed to clear warranty/video);
+    # fields not sent at all are not touched.
+    update_data = update.model_dump(exclude_unset=True)
     if "variants" in update_data and update_data["variants"]:
         for v in update_data["variants"]:
             if not v.get("variant_id"):
@@ -1246,7 +1254,9 @@ async def get_whatsapp_config():
 async def seed_products():
     existing = await db.products.count_documents({})
     if existing > 0:
-        await db.products.delete_many({})
+        # Idempotent: never wipe admin customizations once seeded.
+        # Use /api/admin/reseed (owner-only) to force a reset if ever needed.
+        return {"message": "already seeded", "count": existing}
     products = [
         {"product_id": "prod_tg001", "name": "Diamond Shield 9H Tempered Glass", "description": "Premium 9H hardness tempered glass with oleophobic coating. Anti-fingerprint, bubble-free installation. Edge-to-edge protection.", "price": 499.0, "cost_price": 120.0, "compare_at_price": 999.0, "category": "Tempered Glass", "image": "https://images.unsplash.com/photo-1585060544812-6b45742d762f?w=600", "stock": 200, "featured": True, "bin_location": "Shelf A, Bin 1", "avg_rating": 4.5, "review_count": 45, "variants": [{"variant_id": "var_tg001_clr", "type": "Finish", "value": "Clear", "price_modifier": 0, "stock": 100}, {"variant_id": "var_tg001_mat", "type": "Finish", "value": "Matte", "price_modifier": 50, "stock": 100}]},
         {"product_id": "prod_tg002", "name": "Privacy Guard Anti-Spy Glass", "description": "Anti-spy tempered glass visible only from front. 28-degree privacy filter. Full edge coverage with alignment frame.", "price": 699.0, "cost_price": 180.0, "compare_at_price": 1299.0, "category": "Tempered Glass", "image": "https://images.unsplash.com/photo-1530319067432-f2a729c03db5?w=600", "stock": 80, "featured": True, "bin_location": "Shelf A, Bin 2", "avg_rating": 4.2, "review_count": 22},
@@ -1266,6 +1276,23 @@ async def seed_products():
     ]
     for p in products:
         p["created_at"] = datetime.now(timezone.utc).isoformat()
+        # Inject defaults for new fields (warranty, images gallery, video)
+        # Admin can customize these per-product later via the admin dashboard
+        p["warranty"] = {
+            "Tempered Glass": "6 Months",
+            "Cases": None,
+            "Holders": None,
+            "Cables & Chargers": "1 Year",
+        }.get(p["category"])
+        # Gallery = main image + 3 generic accessory shots (admin can replace)
+        p["images"] = [
+            p["image"],
+            "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&q=80",
+            "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=800&q=80",
+            "https://images.unsplash.com/photo-1520923642038-b4259acecbd7?w=800&q=80",
+        ]
+        # Generic product demo video (admin can replace)
+        p["video"] = "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4"
     await db.products.insert_many(products)
     return {"message": f"Seeded {len(products)} products"}
 

@@ -34,7 +34,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [orderSearch, setOrderSearch] = useState('');
   const [trackingInputs, setTrackingInputs] = useState({});
-  const [productForm, setProductForm] = useState({ name: '', description: '', price: '', cost_price: '', compare_at_price: '', category: 'Cases', image: '', stock: '100', bin_location: '', featured: false });
+  const [productForm, setProductForm] = useState({ name: '', description: '', price: '', cost_price: '', compare_at_price: '', category: 'Cases', image: '', stock: '100', bin_location: '', featured: false, warranty: '', images_text: '', video: '' });
   const [editingProduct, setEditingProduct] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [settingsForm, setSettingsForm] = useState({ razorpay_key_id: '', razorpay_key_secret: '', admin_password: '', whatsapp_number: '', upi_id: '', upi_qr_url: '', upi_name: '' });
@@ -152,12 +152,23 @@ export default function AdminDashboard() {
     e.preventDefault();
     const d = { ...productForm, price: parseFloat(productForm.price), cost_price: parseFloat(productForm.cost_price || '0'), stock: parseInt(productForm.stock) };
     if (productForm.compare_at_price) d.compare_at_price = parseFloat(productForm.compare_at_price);
+    // Warranty: empty string → null (no warranty)
+    d.warranty = productForm.warranty && productForm.warranty.trim() !== '' ? productForm.warranty.trim() : null;
+    // Gallery images: parse textarea (one URL per line), filter empties
+    d.images = (productForm.images_text || '')
+      .split('\n')
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+    // Video: empty → null
+    d.video = productForm.video && productForm.video.trim() !== '' ? productForm.video.trim() : null;
+    // Remove helper field before sending
+    delete d.images_text;
     try {
       if (editingProduct) await axios.put(`${API}/admin/products/${editingProduct}`, d, { withCredentials: true });
       else await axios.post(`${API}/admin/products`, d, { withCredentials: true });
       toast.success(editingProduct ? 'Updated' : 'Created');
       setDialogOpen(false); setEditingProduct(null);
-      setProductForm({ name: '', description: '', price: '', cost_price: '', compare_at_price: '', category: 'Cases', image: '', stock: '100', bin_location: '', featured: false });
+      setProductForm({ name: '', description: '', price: '', cost_price: '', compare_at_price: '', category: 'Cases', image: '', stock: '100', bin_location: '', featured: false, warranty: '', images_text: '', video: '' });
       fetchData(adminRole);
     } catch { toast.error('Failed'); }
   };
@@ -169,7 +180,7 @@ export default function AdminDashboard() {
 
   const openEdit = (p) => {
     setEditingProduct(p.product_id);
-    setProductForm({ name: p.name, description: p.description, price: String(p.price), cost_price: String(p.cost_price || ''), compare_at_price: String(p.compare_at_price || ''), category: p.category, image: p.image, stock: String(p.stock), bin_location: p.bin_location || '', featured: p.featured });
+    setProductForm({ name: p.name, description: p.description, price: String(p.price), cost_price: String(p.cost_price || ''), compare_at_price: String(p.compare_at_price || ''), category: p.category, image: p.image, stock: String(p.stock), bin_location: p.bin_location || '', featured: p.featured, warranty: p.warranty || '', images_text: (p.images || []).join('\n'), video: p.video || '' });
     setDialogOpen(true);
   };
 
@@ -438,9 +449,9 @@ export default function AdminDashboard() {
           <TabsContent value="products">
             <div className="flex justify-end mb-4">
               {isOwner && (
-                <Dialog open={dialogOpen} onOpenChange={v => { setDialogOpen(v); if (!v) { setEditingProduct(null); setProductForm({ name: '', description: '', price: '', cost_price: '', compare_at_price: '', category: 'Cases', image: '', stock: '100', bin_location: '', featured: false }); } }}>
+                <Dialog open={dialogOpen} onOpenChange={v => { setDialogOpen(v); if (!v) { setEditingProduct(null); setProductForm({ name: '', description: '', price: '', cost_price: '', compare_at_price: '', category: 'Cases', image: '', stock: '100', bin_location: '', featured: false, warranty: '', images_text: '', video: '' }); } }}>
                   <DialogTrigger asChild><Button data-testid="add-product-btn" className="bg-[#007AFF] hover:bg-[#005BB5] text-white rounded-lg text-xs"><Plus size={14} className="mr-1" /> Add Product</Button></DialogTrigger>
-                  <DialogContent className="max-w-md bg-[#0A0A0A] border-white/10 text-white">
+                  <DialogContent className="max-w-md bg-[#0A0A0A] border-white/10 text-white max-h-[90vh] overflow-y-auto">
                     <DialogHeader><DialogTitle className="text-white">{editingProduct ? 'Edit' : 'Add'} Product</DialogTitle></DialogHeader>
                     <form onSubmit={handleProductSubmit} className="space-y-3">
                       <div><Label className="text-white/60 text-xs">Name</Label><Input data-testid="product-name-input" value={productForm.name} onChange={e => setProductForm(f => ({...f, name: e.target.value}))} className="bg-white/5 border-white/10 text-white rounded-lg" required /></div>
@@ -457,7 +468,26 @@ export default function AdminDashboard() {
                       <div><Label className="text-white/60 text-xs">Category</Label>
                         <Select value={productForm.category} onValueChange={v => setProductForm(f => ({...f, category: v}))}><SelectTrigger data-testid="product-category-select" className="bg-white/5 border-white/10 text-white rounded-lg"><SelectValue /></SelectTrigger><SelectContent className="bg-[#0A0A0A] border-white/10">{CATS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
                       </div>
-                      <div><Label className="text-white/60 text-xs">Image URL</Label><Input data-testid="product-image-input" value={productForm.image} onChange={e => setProductForm(f => ({...f, image: e.target.value}))} className="bg-white/5 border-white/10 text-white rounded-lg" required /></div>
+                      <div><Label className="text-white/60 text-xs">Main Image URL</Label><Input data-testid="product-image-input" value={productForm.image} onChange={e => setProductForm(f => ({...f, image: e.target.value}))} className="bg-white/5 border-white/10 text-white rounded-lg" required /></div>
+                      <div>
+                        <Label className="text-white/60 text-xs">Warranty <span className="text-white/30">(leave blank for no warranty)</span></Label>
+                        <Input data-testid="product-warranty-input" value={productForm.warranty} onChange={e => setProductForm(f => ({...f, warranty: e.target.value}))} placeholder='e.g. "1 Year", "6 Months", "Lifetime"' className="bg-white/5 border-white/10 text-white rounded-lg" />
+                      </div>
+                      <div>
+                        <Label className="text-white/60 text-xs">Gallery Images <span className="text-white/30">(one URL per line — shown as sliding carousel on product page)</span></Label>
+                        <textarea
+                          data-testid="product-gallery-input"
+                          value={productForm.images_text}
+                          onChange={e => setProductForm(f => ({...f, images_text: e.target.value}))}
+                          rows={4}
+                          placeholder={"https://...image1.jpg\nhttps://...image2.jpg\nhttps://...image3.jpg"}
+                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-[#007AFF]/50 font-mono"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-white/60 text-xs">Product Video URL <span className="text-white/30">(mp4 — plays after images)</span></Label>
+                        <Input data-testid="product-video-input" value={productForm.video} onChange={e => setProductForm(f => ({...f, video: e.target.value}))} placeholder="https://...video.mp4" className="bg-white/5 border-white/10 text-white rounded-lg" />
+                      </div>
                       <Button data-testid="save-product-btn" type="submit" className="w-full bg-[#007AFF] hover:bg-[#005BB5] text-white rounded-lg">{editingProduct ? 'Update' : 'Create'}</Button>
                     </form>
                   </DialogContent>

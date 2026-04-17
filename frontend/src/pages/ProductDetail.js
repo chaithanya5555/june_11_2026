@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Star, Heart, Minus, Plus, ShoppingBag, ArrowLeft, Truck, ShieldCheck, Globe } from '@phosphor-icons/react';
+import { Star, Heart, Minus, Plus, ShoppingBag, ArrowLeft, Truck, ShieldCheck, Globe, CaretLeft, CaretRight, Play } from '@phosphor-icons/react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
@@ -20,6 +20,8 @@ export default function ProductDetail() {
   const [reviewRating, setReviewRating] = useState(5);
   const [submitting, setSubmitting] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(null);
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [touchStartX, setTouchStartX] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -70,17 +72,113 @@ export default function ProductDetail() {
   const variants = product.variants || [];
   const variantTypes = [...new Set(variants.map(v => v.type))];
 
+  // Build slides: gallery images + optional video at the end.
+  // Fallback: if `images` is missing/empty, use main `image` as a single slide.
+  const galleryImages = (product.images && product.images.length > 0) ? product.images : [product.image];
+  const slides = [
+    ...galleryImages.map((url) => ({ kind: 'image', url })),
+    ...(product.video ? [{ kind: 'video', url: product.video }] : []),
+  ];
+  const goPrev = () => setActiveSlide((i) => (i - 1 + slides.length) % slides.length);
+  const goNext = () => setActiveSlide((i) => (i + 1) % slides.length);
+  const onTouchStart = (e) => setTouchStartX(e.touches[0].clientX);
+  const onTouchEnd = (e) => {
+    if (touchStartX == null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (dx > 50) goPrev();
+    else if (dx < -50) goNext();
+    setTouchStartX(null);
+  };
+
   return (
     <div data-testid="product-detail-page" className="min-h-screen bg-black">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Link to="/shop" data-testid="back-to-shop" className="inline-flex items-center gap-1 text-xs text-white/40 hover:text-white mb-6 transition-colors"><ArrowLeft size={12} /> Back</Link>
         <div className="grid lg:grid-cols-2 gap-12">
-          <div className="bg-[#0A0A0A] border border-white/10 rounded-xl overflow-hidden aspect-square relative">
-            <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
-            <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-              <span className="flex items-center gap-1 px-2 py-0.5 bg-[#007AFF]/90 backdrop-blur-sm rounded text-[9px] font-bold uppercase tracking-widest text-white"><Globe size={10} /> Int'l Brand</span>
-              <span className="flex items-center gap-1 px-2 py-0.5 bg-white/10 backdrop-blur-sm rounded text-[9px] font-bold uppercase tracking-widest text-white"><ShieldCheck size={10} /> Precision Fit</span>
+          {/* Media Carousel: sliding images + video at the end */}
+          <div className="flex flex-col gap-3">
+            <div
+              data-testid="product-media-carousel"
+              className="bg-[#0A0A0A] border border-white/10 rounded-xl overflow-hidden aspect-square relative select-none"
+              onTouchStart={onTouchStart}
+              onTouchEnd={onTouchEnd}
+            >
+              {slides.map((slide, idx) => (
+                <div
+                  key={idx}
+                  className={`absolute inset-0 transition-opacity duration-300 ${idx === activeSlide ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}
+                >
+                  {slide.kind === 'image' ? (
+                    <img src={slide.url} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" />
+                  ) : (
+                    <video
+                      src={slide.url}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="w-full h-full object-cover bg-black"
+                    />
+                  )}
+                </div>
+              ))}
+
+              {/* Top-left badges */}
+              <div className="absolute top-3 left-3 z-20 flex flex-col gap-1.5">
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-[#007AFF]/90 backdrop-blur-sm rounded text-[9px] font-bold uppercase tracking-widest text-white"><Globe size={10} /> Int'l Brand</span>
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-white/10 backdrop-blur-sm rounded text-[9px] font-bold uppercase tracking-widest text-white"><ShieldCheck size={10} /> Precision Fit</span>
+              </div>
+
+              {/* Prev / Next — only if multiple slides */}
+              {slides.length > 1 && (
+                <>
+                  <button
+                    data-testid="carousel-prev"
+                    onClick={goPrev}
+                    aria-label="Previous"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white flex items-center justify-center border border-white/10"
+                  >
+                    <CaretLeft size={16} weight="bold" />
+                  </button>
+                  <button
+                    data-testid="carousel-next"
+                    onClick={goNext}
+                    aria-label="Next"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white flex items-center justify-center border border-white/10"
+                  >
+                    <CaretRight size={16} weight="bold" />
+                  </button>
+                </>
+              )}
+
+              {/* Slide counter */}
+              {slides.length > 1 && (
+                <div className="absolute bottom-3 right-3 z-20 px-2 py-0.5 rounded bg-black/60 backdrop-blur-sm text-[10px] text-white/80 font-mono">
+                  {activeSlide + 1} / {slides.length}
+                </div>
+              )}
             </div>
+
+            {/* Thumbnails */}
+            {slides.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-1" data-testid="carousel-thumbs">
+                {slides.map((slide, idx) => (
+                  <button
+                    key={idx}
+                    data-testid={`carousel-thumb-${idx}`}
+                    onClick={() => setActiveSlide(idx)}
+                    className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border transition-colors ${idx === activeSlide ? 'border-[#007AFF]' : 'border-white/10 hover:border-white/30'}`}
+                  >
+                    {slide.kind === 'image' ? (
+                      <img src={slide.url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-black flex items-center justify-center">
+                        <Play size={18} weight="fill" className="text-white" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex flex-col">
             <p className="text-[10px] text-white/30 uppercase tracking-[0.2em] mb-2">{product.category}</p>
@@ -145,7 +243,9 @@ export default function ProductDetail() {
             </div>
             <div className="space-y-2 text-xs text-white/40">
               <div className="flex items-center gap-2"><Truck size={14} className="text-[#007AFF]" /> Free shipping on orders &#8377;500+</div>
-              <div className="flex items-center gap-2"><ShieldCheck size={14} className="text-[#007AFF]" /> 1-year warranty included</div>
+              {product.warranty && product.warranty.trim() !== '' && (
+                <div data-testid="product-warranty" className="flex items-center gap-2"><ShieldCheck size={14} className="text-[#007AFF]" /> {product.warranty} warranty included</div>
+              )}
             </div>
           </div>
         </div>

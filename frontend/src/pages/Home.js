@@ -45,11 +45,6 @@ export default function Home() {
                 Shop Now <ArrowRight size={16} className="ml-2" />
               </Button>
             </Link>
-            <Link to="/shop?category=Tempered+Glass">
-              <Button data-testid="hero-glass-btn" variant="outline" className="border-white/20 text-white hover:bg-white/5 rounded-lg px-6 py-3 h-12 text-sm">
-                Tempered Glass
-              </Button>
-            </Link>
           </div>
         </div>
       </section>
@@ -60,7 +55,7 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { icon: <Truck size={18} />, label: 'Free Shipping', sub: 'Orders ₹500+' },
-              { icon: <ShieldCheck size={18} />, label: '1-Year Warranty', sub: 'All products' },
+              { icon: <ShieldCheck size={18} />, label: 'Authentic Products', sub: 'Quality tested' },
               { icon: <Lightning size={18} />, label: 'Fast Delivery', sub: '2-4 days India' },
               { icon: <Star size={18} />, label: '4.8 Rating', sub: '10K+ reviews' },
             ].map((t, i) => (
