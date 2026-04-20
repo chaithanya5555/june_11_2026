@@ -23,6 +23,8 @@ export default function Shop() {
   const subcategory = searchParams.get('subcategory') || '';
   const brand = searchParams.get('brand') || '';
   const deviceModel = searchParams.get('device_model') || '';
+  const variantBrand = searchParams.get('variant_brand') || '';
+  const variantModel = searchParams.get('variant_model') || '';
   const search = searchParams.get('search') || '';
   const sort = searchParams.get('sort') || '';
   
@@ -86,6 +88,8 @@ export default function Shop() {
         if (category) params.set('category', category);
         if (subcategory) params.set('subcategory', subcategory);
         if (brand) params.set('brand', brand);
+        if (variantBrand) params.set('variant_brand', variantBrand);
+        if (variantModel) params.set('variant_model', variantModel);
         if (search) params.set('search', search);
         if (sort) params.set('sort', sort);
         
@@ -96,7 +100,7 @@ export default function Shop() {
       }
       setLoading(false);
     })();
-  }, [category, subcategory, brand, search, sort]);
+  }, [category, subcategory, brand, variantBrand, variantModel, search, sort]);
 
   const setFilter = (key, value) => {
     const newParams = new URLSearchParams(searchParams);
@@ -125,7 +129,7 @@ export default function Shop() {
     setFilter('search', searchInput);
   };
 
-  const activeFiltersCount = [category, subcategory, brand, deviceModel, search].filter(Boolean).length;
+  const activeFiltersCount = [category, subcategory, brand, deviceModel, variantBrand, variantModel, search].filter(Boolean).length;
 
   return (
     <div data-testid="shop-page" className="min-h-screen bg-black">
@@ -135,6 +139,23 @@ export default function Shop() {
           <h1 className="text-3xl sm:text-4xl tracking-tight font-medium text-white mb-6" style={{ fontFamily: 'var(--font-heading)' }}>
             {category || 'All Products'}
           </h1>
+
+          {(variantBrand || variantModel) && (
+            <div data-testid="device-fit-chip" className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 bg-[#007AFF]/10 border border-[#007AFF]/30 rounded-full">
+              <span className="text-[10px] uppercase tracking-widest text-[#007AFF]/80">Fits</span>
+              <span className="text-xs font-medium text-white">
+                {variantBrand}{variantModel ? ` · ${variantModel}` : ''}
+              </span>
+              <button
+                data-testid="clear-device-fit"
+                onClick={() => { const p = new URLSearchParams(searchParams); p.delete('variant_brand'); p.delete('variant_model'); setSearchParams(p); }}
+                className="text-[#007AFF] hover:text-white ml-1"
+                aria-label="Clear device filter"
+              >
+                ×
+              </button>
+            </div>
+          )}
           
           {/* Search Bar */}
           <form onSubmit={handleSearch} className="flex gap-2 mb-4">

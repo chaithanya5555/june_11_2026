@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { List, X, ShoppingBag, Heart, MagnifyingGlass, House, Storefront, Package, User, Gauge, SignOut, WhatsappLogo, CaretDown, CaretRight } from '@phosphor-icons/react';
+import { List, X, ShoppingBag, Heart, MagnifyingGlass, House, Storefront, Package, User, Gauge, SignOut, WhatsappLogo, CaretDown, CaretRight, DeviceMobile } from '@phosphor-icons/react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import { Sheet, SheetContent, SheetTrigger } from '../components/ui/sheet';
@@ -25,6 +25,10 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCategory, setExpandedCategory] = useState(null);
   const [subcategories, setSubcategories] = useState({});
+  const [deviceBrands, setDeviceBrands] = useState([]); // [{brand, models: []}]
+  const [deviceFinderOpen, setDeviceFinderOpen] = useState(false);
+  const [selectedBrand, setSelectedBrand] = useState('');
+  const [selectedModel, setSelectedModel] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -43,6 +47,23 @@ export default function Navbar() {
         .catch(console.error);
     });
   }, []);
+
+  // Fetch device brands + models aggregated from product variants
+  useEffect(() => {
+    axios.get(`${API}/variant-brands`)
+      .then(res => setDeviceBrands(res.data || []))
+      .catch(() => setDeviceBrands([]));
+  }, []);
+
+  const modelsForSelectedBrand = (deviceBrands.find(b => b.brand === selectedBrand)?.models) || [];
+
+  const applyDeviceFilter = (brand, model) => {
+    const params = new URLSearchParams();
+    if (brand) params.set('variant_brand', brand);
+    if (model) params.set('variant_model', model);
+    navigate(`/shop?${params.toString()}`);
+    setSidebarOpen(false);
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -155,6 +176,65 @@ export default function Navbar() {
                 <Storefront size={18} />
                 All Products
               </Link>
+
+              {/* Device Finder (Brand → Model cascading) */}
+              <div data-testid="device-finder" className="border-y border-white/5 bg-white/[0.02]">
+                <button
+                  data-testid="device-finder-toggle"
+                  onClick={() => setDeviceFinderOpen(o => !o)}
+                  className="w-full flex items-center justify-between px-4 py-3 text-sm text-white/80 hover:bg-white/5 transition-colors"
+                >
+                  <span className="flex items-center gap-3">
+                    <DeviceMobile size={18} className="text-[#007AFF]" />
+                    Find Your Device
+                  </span>
+                  {deviceFinderOpen ? <CaretDown size={14} /> : <CaretRight size={14} />}
+                </button>
+                {deviceFinderOpen && (
+                  <div className="px-4 pb-4 pt-1 space-y-2">
+                    <p className="text-[10px] text-white/40 uppercase tracking-widest">Brand</p>
+                    <select
+                      data-testid="device-finder-brand"
+                      value={selectedBrand}
+                      onChange={e => { setSelectedBrand(e.target.value); setSelectedModel(''); }}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#007AFF]/50"
+                    >
+                      <option value="" className="bg-black">— Select Brand —</option>
+                      {deviceBrands.map(b => (
+                        <option key={b.brand} value={b.brand} className="bg-black">{b.brand}</option>
+                      ))}
+                    </select>
+                    {deviceBrands.length === 0 && (
+                      <p className="text-[10px] text-white/30 italic">No device data yet. Admin can add brands/models via product variants.</p>
+                    )}
+
+                    <p className="text-[10px] text-white/40 uppercase tracking-widest pt-1">Model</p>
+                    <select
+                      data-testid="device-finder-model"
+                      value={selectedModel}
+                      onChange={e => setSelectedModel(e.target.value)}
+                      disabled={!selectedBrand}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#007AFF]/50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <option value="" className="bg-black">
+                        {selectedBrand ? '— Select Model —' : 'Select Brand first'}
+                      </option>
+                      {modelsForSelectedBrand.map(m => (
+                        <option key={m} value={m} className="bg-black">{m}</option>
+                      ))}
+                    </select>
+
+                    <Button
+                      data-testid="device-finder-apply"
+                      onClick={() => applyDeviceFilter(selectedBrand, selectedModel)}
+                      disabled={!selectedBrand}
+                      className="w-full mt-2 bg-[#007AFF] hover:bg-[#005BB5] text-white rounded-lg h-9 text-xs font-medium disabled:opacity-40"
+                    >
+                      Show Matching Products
+                    </Button>
+                  </div>
+                )}
+              </div>
 
               {/* Categories with Subcategories */}
               {CATEGORIES.map(cat => (

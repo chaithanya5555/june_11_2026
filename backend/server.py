@@ -340,6 +340,8 @@ async def get_products(
     subcategory: Optional[str] = None,
     brand: Optional[str] = None,
     device_model: Optional[str] = None,
+    variant_brand: Optional[str] = None,
+    variant_model: Optional[str] = None,
     search: Optional[str] = None,
     sort: Optional[str] = None, 
     featured: Optional[bool] = None
@@ -353,13 +355,26 @@ async def get_products(
         query["brand"] = brand
     if device_model:
         query["device_model"] = {"$regex": device_model, "$options": "i"}
+    # Filter by device fit stored inside variants (variant_axes: brand/model)
+    if variant_brand:
+        query["variants"] = {"$elemMatch": {"options.brand": variant_brand}}
+    if variant_model:
+        # Combine with brand if both given so we match the same variant row
+        em = {"options.model": variant_model}
+        if variant_brand:
+            em["options.brand"] = variant_brand
+        query["variants"] = {"$elemMatch": em}
     if search:
         query["$or"] = [
             {"name": {"$regex": search, "$options": "i"}}, 
             {"description": {"$regex": search, "$options": "i"}},
             {"brand": {"$regex": search, "$options": "i"}},
             {"device_model": {"$regex": search, "$options": "i"}},
-            {"seo_keywords": {"$regex": search, "$options": "i"}}
+            {"seo_keywords": {"$regex": search, "$options": "i"}},
+            # Search also matches device fits stored inside variants
+            {"variants.options.brand": {"$regex": search, "$options": "i"}},
+            {"variants.options.model": {"$regex": search, "$options": "i"}},
+            {"variants.value": {"$regex": search, "$options": "i"}}
         ]
     if featured is not None:
         query["featured"] = featured
@@ -396,6 +411,33 @@ async def get_subcategories(category: Optional[str] = None):
     """Get subcategories, optionally filtered by category"""
     query = {"category": category} if category else {}
     return sorted(await db.products.distinct("subcategory", query))
+
+@api_router.get("/variant-brands")
+async def get_variant_brands(category: Optional[str] = None):
+    """Aggregate all unique brand → [models] from product.variants.options across every product.
+    Used by the Device Finder dropdown in the nav sidebar.
+    Optional `category` filter narrows to e.g. 'Tempered Glass' or 'Cases'.
+    """
+    match = {"variants": {"$exists": True, "$ne": []}}
+    if category:
+        match["category"] = category
+    cursor = db.products.find(match, {"_id": 0, "variants": 1, "category": 1})
+    brand_to_models = {}
+    async for p in cursor:
+        for v in (p.get("variants") or []):
+            opts = v.get("options") or {}
+            b = opts.get("brand")
+            m = opts.get("model")
+            if not b:
+                continue
+            if b not in brand_to_models:
+                brand_to_models[b] = set()
+            if m:
+                brand_to_models[b].add(m)
+    return [
+        {"brand": b, "models": sorted(list(models))}
+        for b, models in sorted(brand_to_models.items())
+    ]
 
 # ── Reviews ──
 @api_router.post("/products/{product_id}/reviews")
