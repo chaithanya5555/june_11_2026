@@ -83,6 +83,7 @@ class ProductCreate(BaseModel):
     featured: bool = False
     bin_location: str = ""
     variants: Optional[List[dict]] = None
+    variant_axes: Optional[List[dict]] = None  # e.g. [{"key":"brand","label":"Brand","ui":"dropdown"}, {"key":"model","label":"Model","ui":"dropdown","depends_on":"brand"}]
     warranty: Optional[str] = None  # e.g., "1 Year", "6 Months", None = no warranty
     images: Optional[List[str]] = None  # Additional gallery images (main `image` is always shown first)
     video: Optional[str] = None  # Product video URL (mp4 or YouTube embed)
@@ -99,6 +100,7 @@ class ProductUpdate(BaseModel):
     featured: Optional[bool] = None
     bin_location: Optional[str] = None
     variants: Optional[List[dict]] = None
+    variant_axes: Optional[List[dict]] = None
     warranty: Optional[str] = None
     images: Optional[List[str]] = None
     video: Optional[str] = None
@@ -423,7 +425,10 @@ async def get_cart(request: Request):
     for item in items:
         product = await db.products.find_one({"product_id": item["product_id"]}, {"_id": 0})
         if product:
-            result.append({**item, "product": product})
+            variant = None
+            if item.get("variant_id") and product.get("variants"):
+                variant = next((v for v in product["variants"] if v.get("variant_id") == item["variant_id"]), None)
+            result.append({**item, "product": product, "variant": variant})
     return result
 
 @api_router.post("/cart")
@@ -432,18 +437,29 @@ async def add_to_cart(item: CartItemAdd, request: Request):
     product = await db.products.find_one({"product_id": item.product_id}, {"_id": 0})
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    query = {"user_id": user["user_id"], "product_id": item.product_id}
-    if item.variant_id:
-        query["variant_id"] = item.variant_id
+    query = {"user_id": user["user_id"], "product_id": item.product_id, "variant_id": item.variant_id}
     existing = await db.cart_items.find_one(query, {"_id": 0})
     if existing:
         await db.cart_items.update_one(query, {"$set": {"quantity": existing["quantity"] + item.quantity}})
     else:
-        doc = {"cart_item_id": f"ci_{uuid.uuid4().hex[:12]}", "user_id": user["user_id"], "product_id": item.product_id, "quantity": item.quantity, "added_at": datetime.now(timezone.utc).isoformat()}
-        if item.variant_id:
-            doc["variant_id"] = item.variant_id
+        doc = {"cart_item_id": f"ci_{uuid.uuid4().hex[:12]}", "user_id": user["user_id"], "product_id": item.product_id, "variant_id": item.variant_id, "quantity": item.quantity, "added_at": datetime.now(timezone.utc).isoformat()}
         await db.cart_items.insert_one(doc)
     return {"message": "Added to cart"}
+
+@api_router.put("/cart/item/{cart_item_id}")
+async def update_cart_item_by_id(cart_item_id: str, item: CartItemAdd, request: Request):
+    user = await get_current_user(request)
+    if item.quantity <= 0:
+        await db.cart_items.delete_one({"user_id": user["user_id"], "cart_item_id": cart_item_id})
+        return {"message": "Item removed"}
+    await db.cart_items.update_one({"user_id": user["user_id"], "cart_item_id": cart_item_id}, {"$set": {"quantity": item.quantity}})
+    return {"message": "Cart updated"}
+
+@api_router.delete("/cart/item/{cart_item_id}")
+async def remove_cart_item_by_id(cart_item_id: str, request: Request):
+    user = await get_current_user(request)
+    await db.cart_items.delete_one({"user_id": user["user_id"], "cart_item_id": cart_item_id})
+    return {"message": "Removed"}
 
 @api_router.put("/cart/{product_id}")
 async def update_cart_item(product_id: str, item: CartItemAdd, request: Request):

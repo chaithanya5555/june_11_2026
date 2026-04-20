@@ -11,6 +11,7 @@ import { Label } from '../components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { toast } from 'sonner';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import VariantsEditor from '../components/admin/VariantsEditor';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const CATS = ['Tempered Glass', 'Cases', 'Holders', 'Cables & Chargers'];
@@ -34,7 +35,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [orderSearch, setOrderSearch] = useState('');
   const [trackingInputs, setTrackingInputs] = useState({});
-  const [productForm, setProductForm] = useState({ name: '', description: '', price: '', cost_price: '', compare_at_price: '', category: 'Cases', image: '', stock: '100', bin_location: '', featured: false, warranty: '', images_text: '', video: '' });
+  const [productForm, setProductForm] = useState({ name: '', description: '', price: '', cost_price: '', compare_at_price: '', category: 'Cases', image: '', stock: '100', bin_location: '', featured: false, warranty: '', images_text: '', video: '', variant_axes: [], variants: [] });
   const [editingProduct, setEditingProduct] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [settingsForm, setSettingsForm] = useState({ razorpay_key_id: '', razorpay_key_secret: '', admin_password: '', whatsapp_number: '', upi_id: '', upi_qr_url: '', upi_name: '' });
@@ -161,6 +162,15 @@ export default function AdminDashboard() {
       .filter(s => s.length > 0);
     // Video: empty → null
     d.video = productForm.video && productForm.video.trim() !== '' ? productForm.video.trim() : null;
+    // Variant axes + variants (both come from VariantsEditor state)
+    d.variant_axes = productForm.variant_axes && productForm.variant_axes.length > 0 ? productForm.variant_axes : null;
+    d.variants = productForm.variants && productForm.variants.length > 0
+      ? productForm.variants.map(v => ({
+          ...v,
+          stock: parseInt(v.stock ?? 0, 10) || 0,
+          price_modifier: parseFloat(v.price_modifier ?? 0) || 0,
+        }))
+      : null;
     // Remove helper field before sending
     delete d.images_text;
     try {
@@ -168,7 +178,7 @@ export default function AdminDashboard() {
       else await axios.post(`${API}/admin/products`, d, { withCredentials: true });
       toast.success(editingProduct ? 'Updated' : 'Created');
       setDialogOpen(false); setEditingProduct(null);
-      setProductForm({ name: '', description: '', price: '', cost_price: '', compare_at_price: '', category: 'Cases', image: '', stock: '100', bin_location: '', featured: false, warranty: '', images_text: '', video: '' });
+      setProductForm({ name: '', description: '', price: '', cost_price: '', compare_at_price: '', category: 'Cases', image: '', stock: '100', bin_location: '', featured: false, warranty: '', images_text: '', video: '', variant_axes: [], variants: [] });
       fetchData(adminRole);
     } catch { toast.error('Failed'); }
   };
@@ -180,7 +190,23 @@ export default function AdminDashboard() {
 
   const openEdit = (p) => {
     setEditingProduct(p.product_id);
-    setProductForm({ name: p.name, description: p.description, price: String(p.price), cost_price: String(p.cost_price || ''), compare_at_price: String(p.compare_at_price || ''), category: p.category, image: p.image, stock: String(p.stock), bin_location: p.bin_location || '', featured: p.featured, warranty: p.warranty || '', images_text: (p.images || []).join('\n'), video: p.video || '' });
+    setProductForm({
+      name: p.name,
+      description: p.description,
+      price: String(p.price),
+      cost_price: String(p.cost_price || ''),
+      compare_at_price: String(p.compare_at_price || ''),
+      category: p.category,
+      image: p.image,
+      stock: String(p.stock),
+      bin_location: p.bin_location || '',
+      featured: p.featured,
+      warranty: p.warranty || '',
+      images_text: (p.images || []).join('\n'),
+      video: p.video || '',
+      variant_axes: p.variant_axes || [],
+      variants: p.variants || [],
+    });
     setDialogOpen(true);
   };
 
@@ -449,9 +475,9 @@ export default function AdminDashboard() {
           <TabsContent value="products">
             <div className="flex justify-end mb-4">
               {isOwner && (
-                <Dialog open={dialogOpen} onOpenChange={v => { setDialogOpen(v); if (!v) { setEditingProduct(null); setProductForm({ name: '', description: '', price: '', cost_price: '', compare_at_price: '', category: 'Cases', image: '', stock: '100', bin_location: '', featured: false, warranty: '', images_text: '', video: '' }); } }}>
+                <Dialog open={dialogOpen} onOpenChange={v => { setDialogOpen(v); if (!v) { setEditingProduct(null); setProductForm({ name: '', description: '', price: '', cost_price: '', compare_at_price: '', category: 'Cases', image: '', stock: '100', bin_location: '', featured: false, warranty: '', images_text: '', video: '', variant_axes: [], variants: [] }); } }}>
                   <DialogTrigger asChild><Button data-testid="add-product-btn" className="bg-[#007AFF] hover:bg-[#005BB5] text-white rounded-lg text-xs"><Plus size={14} className="mr-1" /> Add Product</Button></DialogTrigger>
-                  <DialogContent className="max-w-md bg-[#0A0A0A] border-white/10 text-white max-h-[90vh] overflow-y-auto">
+                  <DialogContent className="max-w-2xl bg-[#0A0A0A] border-white/10 text-white max-h-[90vh] overflow-y-auto">
                     <DialogHeader><DialogTitle className="text-white">{editingProduct ? 'Edit' : 'Add'} Product</DialogTitle></DialogHeader>
                     <form onSubmit={handleProductSubmit} className="space-y-3">
                       <div><Label className="text-white/60 text-xs">Name</Label><Input data-testid="product-name-input" value={productForm.name} onChange={e => setProductForm(f => ({...f, name: e.target.value}))} className="bg-white/5 border-white/10 text-white rounded-lg" required /></div>
@@ -488,6 +514,14 @@ export default function AdminDashboard() {
                         <Label className="text-white/60 text-xs">Product Video URL <span className="text-white/30">(mp4 — plays after images)</span></Label>
                         <Input data-testid="product-video-input" value={productForm.video} onChange={e => setProductForm(f => ({...f, video: e.target.value}))} placeholder="https://...video.mp4" className="bg-white/5 border-white/10 text-white rounded-lg" />
                       </div>
+
+                      <VariantsEditor
+                        axes={productForm.variant_axes}
+                        variants={productForm.variants}
+                        onAxesChange={(axes) => setProductForm(f => ({ ...f, variant_axes: axes }))}
+                        onVariantsChange={(variants) => setProductForm(f => ({ ...f, variants }))}
+                      />
+
                       <Button data-testid="save-product-btn" type="submit" className="w-full bg-[#007AFF] hover:bg-[#005BB5] text-white rounded-lg">{editingProduct ? 'Update' : 'Create'}</Button>
                     </form>
                   </DialogContent>

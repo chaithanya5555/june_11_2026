@@ -20,18 +20,31 @@ export function CartProvider({ children }) {
 
   useEffect(() => { fetchCart(); }, [fetchCart]);
 
-  const addToCart = async (productId, quantity = 1) => {
-    await axios.post(`${API}/cart`, { product_id: productId, quantity }, { withCredentials: true });
+  const addToCart = async (productId, quantity = 1, variantId = null) => {
+    await axios.post(`${API}/cart`, { product_id: productId, quantity, variant_id: variantId }, { withCredentials: true });
     await fetchCart();
   };
 
-  const updateQuantity = async (productId, quantity) => {
-    await axios.put(`${API}/cart/${productId}`, { product_id: productId, quantity }, { withCredentials: true });
+  // Prefer cart_item_id (variant-safe); fall back to product_id legacy endpoint for old items
+  const updateQuantity = async (item, quantity) => {
+    const id = typeof item === 'string' ? item : item.cart_item_id;
+    const productId = typeof item === 'string' ? item : item.product_id;
+    if (id) {
+      await axios.put(`${API}/cart/item/${id}`, { product_id: productId || id, quantity }, { withCredentials: true });
+    } else {
+      await axios.put(`${API}/cart/${productId}`, { product_id: productId, quantity }, { withCredentials: true });
+    }
     await fetchCart();
   };
 
-  const removeFromCart = async (productId) => {
-    await axios.delete(`${API}/cart/${productId}`, { withCredentials: true });
+  const removeFromCart = async (item) => {
+    const id = typeof item === 'string' ? null : item.cart_item_id;
+    const productId = typeof item === 'string' ? item : item.product_id;
+    if (id) {
+      await axios.delete(`${API}/cart/item/${id}`, { withCredentials: true });
+    } else {
+      await axios.delete(`${API}/cart/${productId}`, { withCredentials: true });
+    }
     await fetchCart();
   };
 
@@ -42,8 +55,9 @@ export function CartProvider({ children }) {
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cartItems.reduce((sum, item) => {
-    const price = item.product?.price || 0;
-    return sum + price * item.quantity;
+    const base = item.product?.price || 0;
+    const mod = item.variant?.price_modifier || 0;
+    return sum + (base + mod) * item.quantity;
   }, 0);
 
   return (

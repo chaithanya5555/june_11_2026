@@ -561,18 +561,29 @@ export default function Checkout() {
             <div className="order-1 lg:order-none lg:col-start-1 lg:col-span-3 lg:row-start-2 bg-[#0A0A0A] border border-white/10 rounded-xl p-5">
               <h3 className="text-sm font-medium text-white mb-4">Order Items ({cartCount})</h3>
               <div className="space-y-3">
-                {cartItems.map(item => (
-                  <div key={item.product_id} className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
+                {cartItems.map(item => {
+                  const key = item.cart_item_id || `${item.product_id}-${item.variant_id || 'base'}`;
+                  const unitPrice = (item.product?.price || 0) + (item.variant?.price_modifier || 0);
+                  const variantLabel = item.variant
+                    ? (item.variant.options
+                        ? Object.entries(item.variant.options).map(([k, v]) => v).join(' / ')
+                        : item.variant.value || '')
+                    : '';
+                  const thumb = item.variant?.image || item.product?.image;
+                  return (
+                  <div key={key} className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
                     <div className="w-12 h-12 bg-white/5 rounded-lg overflow-hidden flex-shrink-0">
-                      <img src={item.product?.image} alt="" className="w-full h-full object-cover" />
+                      <img src={thumb} alt="" className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-white truncate">{item.product?.name}</p>
+                      {variantLabel && <p className="text-[10px] text-white/40 truncate">{variantLabel}</p>}
                       <p className="text-[10px] text-white/40">Qty: {item.quantity}</p>
                     </div>
-                    <p className="text-sm font-medium text-white">₹{(item.product?.price * item.quantity).toLocaleString('en-IN')}</p>
+                    <p className="text-sm font-medium text-white">₹{(unitPrice * item.quantity).toLocaleString('en-IN')}</p>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
