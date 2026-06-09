@@ -25,6 +25,7 @@ export default function AdminDashboard() {
   const [adminName, setAdminName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [stats, setStats] = useState(null);
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
@@ -300,7 +301,25 @@ export default function AdminDashboard() {
           <p className="text-[10px] text-white/30 text-center mb-5">Enter credentials to access the dashboard</p>
           <div className="space-y-3">
             <Input data-testid="admin-email-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email (e.g. owner@snapalign.com)" className="bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-lg" />
-            <Input data-testid="admin-password-input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" className="bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-lg" required />
+            <div className="relative">
+              <Input 
+                data-testid="admin-password-input" 
+                type={showLoginPassword ? "text" : "password"} 
+                value={password} 
+                onChange={e => setPassword(e.target.value)} 
+                placeholder="Password" 
+                className="bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-lg pr-10" 
+                required 
+              />
+              <button
+                type="button"
+                onClick={() => setShowLoginPassword(!showLoginPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+                tabIndex={-1}
+              >
+                {showLoginPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
           <Button data-testid="admin-login-btn" type="submit" className="w-full bg-[#007AFF] hover:bg-[#005BB5] text-white rounded-lg mt-4">Login</Button>
           <p className="text-[9px] text-white/20 text-center mt-3">Legacy: leave email blank, enter admin password only</p>
