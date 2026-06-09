@@ -14,7 +14,8 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import VariantsEditor from '../components/admin/VariantsEditor';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const CATS = ['Tempered Glass', 'Cases', 'Holders', 'Cables & Chargers'];
+const DEFAULT_CATS = ['Tempered Glass', 'Cases', 'Holders', 'Cables & Chargers'];
+const DEFAULT_BRANDS = ['Apple', 'Samsung', 'OnePlus', 'Google', 'Xiaomi', 'Vivo', 'Oppo', 'Realme', 'Motorola', 'Nothing'];
 const PIE_COLORS = ['#007AFF', '#34C759', '#FF9500', '#FF3B30', '#AF52DE', '#5AC8FA'];
 
 export default function AdminDashboard() {
@@ -48,6 +49,16 @@ export default function AdminDashboard() {
   const [newUserForm, setNewUserForm] = useState({ email: '', name: '', password: '', role: 'warehouse_manager' });
   const [pendingUTR, setPendingUTR] = useState([]);
   const [processingUTR, setProcessingUTR] = useState({});
+  const [customCategories, setCustomCategories] = useState([]);
+  const [customBrands, setCustomBrands] = useState([]);
+  const [newCategoryInput, setNewCategoryInput] = useState('');
+  const [newBrandInput, setNewBrandInput] = useState('');
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
+  const [showNewBrandInput, setShowNewBrandInput] = useState(false);
+
+  // Combine default and custom categories/brands
+  const CATS = [...new Set([...DEFAULT_CATS, ...customCategories])];
+  const BRANDS = [...new Set([...DEFAULT_BRANDS, ...customBrands])];
 
   const isOwner = adminRole === 'owner';
 
@@ -495,26 +506,112 @@ export default function AdminDashboard() {
                         <div><Label className="text-white/60 text-xs">Bin Location</Label><Input data-testid="product-bin-input" value={productForm.bin_location} onChange={e => setProductForm(f => ({...f, bin_location: e.target.value}))} placeholder="Shelf B, Bin 4" className="bg-white/5 border-white/10 text-white rounded-lg" /></div>
                       </div>
                       <div><Label className="text-white/60 text-xs">Category</Label>
-                        <Select value={productForm.category} onValueChange={v => setProductForm(f => ({...f, category: v}))}><SelectTrigger data-testid="product-category-select" className="bg-white/5 border-white/10 text-white rounded-lg"><SelectValue /></SelectTrigger><SelectContent className="bg-[#0A0A0A] border-white/10">{CATS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                        {!showNewCategoryInput ? (
+                          <Select value={productForm.category} onValueChange={v => {
+                            if (v === '__add_new__') {
+                              setShowNewCategoryInput(true);
+                            } else {
+                              setProductForm(f => ({...f, category: v}));
+                            }
+                          }}>
+                            <SelectTrigger data-testid="product-category-select" className="bg-white/5 border-white/10 text-white rounded-lg"><SelectValue /></SelectTrigger>
+                            <SelectContent className="bg-[#0A0A0A] border-white/10">
+                              {CATS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                              <SelectItem value="__add_new__" className="text-[#007AFF] border-t border-white/10 mt-1 pt-1">
+                                <span className="flex items-center gap-1"><Plus size={14} /> Add New Category</span>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="flex gap-2">
+                            <Input 
+                              value={newCategoryInput} 
+                              onChange={e => setNewCategoryInput(e.target.value)} 
+                              placeholder="Enter new category name" 
+                              className="bg-white/5 border-white/10 text-white rounded-lg flex-1" 
+                              autoFocus
+                            />
+                            <Button 
+                              type="button"
+                              size="sm"
+                              onClick={() => {
+                                if (newCategoryInput.trim()) {
+                                  setCustomCategories(prev => [...prev, newCategoryInput.trim()]);
+                                  setProductForm(f => ({...f, category: newCategoryInput.trim()}));
+                                  setNewCategoryInput('');
+                                }
+                                setShowNewCategoryInput(false);
+                              }}
+                              className="bg-[#007AFF] hover:bg-[#005BB5]"
+                            >
+                              <Check size={14} />
+                            </Button>
+                            <Button 
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => { setShowNewCategoryInput(false); setNewCategoryInput(''); }}
+                              className="text-white/50 hover:text-white"
+                            >
+                              <X size={14} />
+                            </Button>
+                          </div>
+                        )}
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div><Label className="text-white/60 text-xs">Phone Brand</Label>
-                          <Select value={productForm.brand || 'none'} onValueChange={v => setProductForm(f => ({...f, brand: v === 'none' ? '' : v, device_model: ''}))}>
-                            <SelectTrigger data-testid="product-brand-select" className="bg-white/5 border-white/10 text-white rounded-lg"><SelectValue placeholder="Select Brand" /></SelectTrigger>
-                            <SelectContent className="bg-[#0A0A0A] border-white/10">
-                              <SelectItem value="none">-- Select Brand --</SelectItem>
-                              <SelectItem value="Apple">Apple</SelectItem>
-                              <SelectItem value="Samsung">Samsung</SelectItem>
-                              <SelectItem value="OnePlus">OnePlus</SelectItem>
-                              <SelectItem value="Google">Google</SelectItem>
-                              <SelectItem value="Xiaomi">Xiaomi</SelectItem>
-                              <SelectItem value="Vivo">Vivo</SelectItem>
-                              <SelectItem value="Oppo">Oppo</SelectItem>
-                              <SelectItem value="Realme">Realme</SelectItem>
-                              <SelectItem value="Motorola">Motorola</SelectItem>
-                              <SelectItem value="Nothing">Nothing</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          {!showNewBrandInput ? (
+                            <Select value={productForm.brand || 'none'} onValueChange={v => {
+                              if (v === '__add_new__') {
+                                setShowNewBrandInput(true);
+                              } else {
+                                setProductForm(f => ({...f, brand: v === 'none' ? '' : v, device_model: ''}));
+                              }
+                            }}>
+                              <SelectTrigger data-testid="product-brand-select" className="bg-white/5 border-white/10 text-white rounded-lg"><SelectValue placeholder="Select Brand" /></SelectTrigger>
+                              <SelectContent className="bg-[#0A0A0A] border-white/10">
+                                <SelectItem value="none">-- Select Brand --</SelectItem>
+                                {BRANDS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                                <SelectItem value="__add_new__" className="text-[#007AFF] border-t border-white/10 mt-1 pt-1">
+                                  <span className="flex items-center gap-1"><Plus size={14} /> Add New Brand</span>
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <div className="flex gap-1">
+                              <Input 
+                                value={newBrandInput} 
+                                onChange={e => setNewBrandInput(e.target.value)} 
+                                placeholder="New brand" 
+                                className="bg-white/5 border-white/10 text-white rounded-lg flex-1 text-xs" 
+                                autoFocus
+                              />
+                              <Button 
+                                type="button"
+                                size="sm"
+                                onClick={() => {
+                                  if (newBrandInput.trim()) {
+                                    setCustomBrands(prev => [...prev, newBrandInput.trim()]);
+                                    setProductForm(f => ({...f, brand: newBrandInput.trim(), device_model: ''}));
+                                    setNewBrandInput('');
+                                  }
+                                  setShowNewBrandInput(false);
+                                }}
+                                className="bg-[#007AFF] hover:bg-[#005BB5] px-2"
+                              >
+                                <Check size={12} />
+                              </Button>
+                              <Button 
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => { setShowNewBrandInput(false); setNewBrandInput(''); }}
+                                className="text-white/50 hover:text-white px-2"
+                              >
+                                <X size={12} />
+                              </Button>
+                            </div>
+                          )}
                         </div>
                         <div><Label className="text-white/60 text-xs">Device Model</Label>
                           <Input data-testid="product-device-model-input" value={productForm.device_model} onChange={e => setProductForm(f => ({...f, device_model: e.target.value}))} placeholder="e.g. iPhone 17 Pro, Galaxy S25 Ultra" className="bg-white/5 border-white/10 text-white rounded-lg" />
