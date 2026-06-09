@@ -59,8 +59,8 @@ export default function Navbar() {
 
   const applyDeviceFilter = (brand, model) => {
     const params = new URLSearchParams();
-    if (brand) params.set('variant_brand', brand);
-    if (model) params.set('variant_model', model);
+    if (brand) params.set('brand', brand);
+    if (model) params.set('device_model', model);
     navigate(`/shop?${params.toString()}`);
     setSidebarOpen(false);
   };
