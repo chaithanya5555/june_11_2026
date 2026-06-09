@@ -206,4 +206,6 @@ agent_communication:
   - agent: "main"
     message: "SnapAlign website cloned from GitHub and running. Razorpay test keys configured. Please test: 1) Product browsing and categories 2) Add to cart and cart management 3) Checkout flow (can use test card) 4) Admin dashboard at /admin with password snapalign2026"
   - agent: "testing"
+    message: "Frontend testing complete. Product browsing, categories, product details, admin dashboard all working. Cart/checkout requires Emergent OAuth authentication which cannot be automated. Minor issue: React duplicate key warnings for products."
+  - agent: "testing"
     message: "Testing completed. Product Browsing ✅ WORKING (homepage, categories, featured products, shop filtering, product details all functional). Admin Dashboard ✅ WORKING (login, all tabs accessible, products/warehouse/orders visible). Cart & Checkout ⚠️ CANNOT TEST (require Google OAuth authentication - protected routes working correctly). Minor issue: React duplicate key warnings in console (code quality, not functional blocker). Overall: All testable features working correctly!"
