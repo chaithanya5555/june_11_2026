@@ -35,7 +35,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [orderSearch, setOrderSearch] = useState('');
   const [trackingInputs, setTrackingInputs] = useState({});
-  const [productForm, setProductForm] = useState({ name: '', description: '', price: '', cost_price: '', compare_at_price: '', category: 'Cases', image: '', stock: '100', bin_location: '', featured: false, warranty: '', images_text: '', video: '', variant_axes: [], variants: [] });
+  const [productForm, setProductForm] = useState({ name: '', description: '', price: '', cost_price: '', compare_at_price: '', category: 'Cases', brand: '', device_model: '', subcategory: '', image: '', stock: '100', bin_location: '', featured: false, warranty: '', images_text: '', video: '', variant_axes: [], variants: [] });
   const [editingProduct, setEditingProduct] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [settingsForm, setSettingsForm] = useState({ razorpay_key_id: '', razorpay_key_secret: '', admin_password: '', whatsapp_number: '', upi_id: '', upi_qr_url: '', upi_name: '' });
@@ -178,7 +178,7 @@ export default function AdminDashboard() {
       else await axios.post(`${API}/admin/products`, d, { withCredentials: true });
       toast.success(editingProduct ? 'Updated' : 'Created');
       setDialogOpen(false); setEditingProduct(null);
-      setProductForm({ name: '', description: '', price: '', cost_price: '', compare_at_price: '', category: 'Cases', image: '', stock: '100', bin_location: '', featured: false, warranty: '', images_text: '', video: '', variant_axes: [], variants: [] });
+      setProductForm({ name: '', description: '', price: '', cost_price: '', compare_at_price: '', category: 'Cases', brand: '', device_model: '', subcategory: '', image: '', stock: '100', bin_location: '', featured: false, warranty: '', images_text: '', video: '', variant_axes: [], variants: [] });
       fetchData(adminRole);
     } catch { toast.error('Failed'); }
   };
@@ -197,6 +197,9 @@ export default function AdminDashboard() {
       cost_price: String(p.cost_price || ''),
       compare_at_price: String(p.compare_at_price || ''),
       category: p.category,
+      brand: p.brand || '',
+      device_model: p.device_model || '',
+      subcategory: p.subcategory || '',
       image: p.image,
       stock: String(p.stock),
       bin_location: p.bin_location || '',
@@ -475,7 +478,7 @@ export default function AdminDashboard() {
           <TabsContent value="products">
             <div className="flex justify-end mb-4">
               {isOwner && (
-                <Dialog open={dialogOpen} onOpenChange={v => { setDialogOpen(v); if (!v) { setEditingProduct(null); setProductForm({ name: '', description: '', price: '', cost_price: '', compare_at_price: '', category: 'Cases', image: '', stock: '100', bin_location: '', featured: false, warranty: '', images_text: '', video: '', variant_axes: [], variants: [] }); } }}>
+                <Dialog open={dialogOpen} onOpenChange={v => { setDialogOpen(v); if (!v) { setEditingProduct(null); setProductForm({ name: '', description: '', price: '', cost_price: '', compare_at_price: '', category: 'Cases', brand: '', device_model: '', subcategory: '', image: '', stock: '100', bin_location: '', featured: false, warranty: '', images_text: '', video: '', variant_axes: [], variants: [] }); } }}>
                   <DialogTrigger asChild><Button data-testid="add-product-btn" className="bg-[#007AFF] hover:bg-[#005BB5] text-white rounded-lg text-xs"><Plus size={14} className="mr-1" /> Add Product</Button></DialogTrigger>
                   <DialogContent className="max-w-2xl bg-[#0A0A0A] border-white/10 text-white max-h-[90vh] overflow-y-auto">
                     <DialogHeader><DialogTitle className="text-white">{editingProduct ? 'Edit' : 'Add'} Product</DialogTitle></DialogHeader>
@@ -493,6 +496,29 @@ export default function AdminDashboard() {
                       </div>
                       <div><Label className="text-white/60 text-xs">Category</Label>
                         <Select value={productForm.category} onValueChange={v => setProductForm(f => ({...f, category: v}))}><SelectTrigger data-testid="product-category-select" className="bg-white/5 border-white/10 text-white rounded-lg"><SelectValue /></SelectTrigger><SelectContent className="bg-[#0A0A0A] border-white/10">{CATS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div><Label className="text-white/60 text-xs">Phone Brand</Label>
+                          <Select value={productForm.brand || 'none'} onValueChange={v => setProductForm(f => ({...f, brand: v === 'none' ? '' : v, device_model: ''}))}>
+                            <SelectTrigger data-testid="product-brand-select" className="bg-white/5 border-white/10 text-white rounded-lg"><SelectValue placeholder="Select Brand" /></SelectTrigger>
+                            <SelectContent className="bg-[#0A0A0A] border-white/10">
+                              <SelectItem value="none">-- Select Brand --</SelectItem>
+                              <SelectItem value="Apple">Apple</SelectItem>
+                              <SelectItem value="Samsung">Samsung</SelectItem>
+                              <SelectItem value="OnePlus">OnePlus</SelectItem>
+                              <SelectItem value="Google">Google</SelectItem>
+                              <SelectItem value="Xiaomi">Xiaomi</SelectItem>
+                              <SelectItem value="Vivo">Vivo</SelectItem>
+                              <SelectItem value="Oppo">Oppo</SelectItem>
+                              <SelectItem value="Realme">Realme</SelectItem>
+                              <SelectItem value="Motorola">Motorola</SelectItem>
+                              <SelectItem value="Nothing">Nothing</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div><Label className="text-white/60 text-xs">Device Model</Label>
+                          <Input data-testid="product-device-model-input" value={productForm.device_model} onChange={e => setProductForm(f => ({...f, device_model: e.target.value}))} placeholder="e.g. iPhone 17 Pro, Galaxy S25 Ultra" className="bg-white/5 border-white/10 text-white rounded-lg" />
+                        </div>
                       </div>
                       <div><Label className="text-white/60 text-xs">Main Image URL</Label><Input data-testid="product-image-input" value={productForm.image} onChange={e => setProductForm(f => ({...f, image: e.target.value}))} className="bg-white/5 border-white/10 text-white rounded-lg" required /></div>
                       <div>
