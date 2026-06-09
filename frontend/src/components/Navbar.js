@@ -48,9 +48,9 @@ export default function Navbar() {
     });
   }, []);
 
-  // Fetch device brands + models aggregated from product variants
+  // Fetch device brands + models from product-level data
   useEffect(() => {
-    axios.get(`${API}/variant-brands`)
+    axios.get(`${API}/brands-with-models`)
       .then(res => setDeviceBrands(res.data || []))
       .catch(() => setDeviceBrands([]));
   }, []);

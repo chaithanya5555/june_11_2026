@@ -439,6 +439,31 @@ async def get_variant_brands(category: Optional[str] = None):
         for b, models in sorted(brand_to_models.items())
     ]
 
+@api_router.get("/brands-with-models")
+async def get_brands_with_models(category: Optional[str] = None):
+    """Get all unique brands with their device models from product-level data.
+    Used by the Device Finder dropdown in the nav sidebar.
+    Optional `category` filter narrows to e.g. 'Tempered Glass' or 'Cases'.
+    """
+    match = {"brand": {"$exists": True, "$ne": ""}}
+    if category:
+        match["category"] = category
+    cursor = db.products.find(match, {"_id": 0, "brand": 1, "device_model": 1})
+    brand_to_models = {}
+    async for p in cursor:
+        b = p.get("brand")
+        m = p.get("device_model")
+        if not b:
+            continue
+        if b not in brand_to_models:
+            brand_to_models[b] = set()
+        if m:
+            brand_to_models[b].add(m)
+    return [
+        {"brand": b, "models": sorted(list(models))}
+        for b, models in sorted(brand_to_models.items())
+    ]
+
 # ── Reviews ──
 @api_router.post("/products/{product_id}/reviews")
 async def add_review(product_id: str, review: ReviewCreate, request: Request):
