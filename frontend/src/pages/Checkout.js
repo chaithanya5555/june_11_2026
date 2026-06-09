@@ -15,7 +15,7 @@ export default function Checkout() {
   const { user, login } = useAuth();
   const { cartItems, cartTotal, cartCount, clearCart } = useCart();
   
-  const [step, setStep] = useState('checkout'); // 'checkout', 'address', 'payment', 'utr', 'verification'
+  const [step, setStep] = useState('checkout'); // 'checkout', 'address', 'payment-select', 'payment', 'utr', 'verification'
   const [processing, setProcessing] = useState(false);
   const [couponCode, setCouponCode] = useState('');
   const [validating, setValidating] = useState(false);
@@ -26,6 +26,7 @@ export default function Checkout() {
   const [utr, setUtr] = useState('');
   const [copied, setCopied] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('razorpay'); // 'razorpay' or 'upi'
   
   // Address fields
   const [address, setAddress] = useState({
@@ -121,19 +122,83 @@ export default function Checkout() {
       return;
     }
     
-    // Create order with address
+    // Move to payment method selection
+    setStep('payment-select');
+  };
+
+  const handlePaymentMethodSelect = async (method) => {
+    setPaymentMethod(method);
     setProcessing(true);
+    
     try {
-      const r = await axios.post(`${API}/payment/manual-upi/create-order`, {
-        origin_url: window.location.origin,
-        payment_method: 'manual_upi',
-        coupon_code: couponApplied?.code || null,
-        shipping_address: address,
-        estimated_delivery: estimatedDelivery
-      }, { withCredentials: true });
-      
-      setOrderData(r.data);
-      setStep('payment');
+      if (method === 'razorpay') {
+        // Create Razorpay order
+        const r = await axios.post(`${API}/payment/create-order`, {
+          origin_url: window.location.origin,
+          payment_method: 'razorpay',
+          coupon_code: couponApplied?.code || null,
+          shipping_address: address,
+          estimated_delivery: estimatedDelivery
+        }, { withCredentials: true });
+        
+        setOrderData(r.data);
+        
+        // Open Razorpay checkout
+        const options = {
+          key: r.data.key_id,
+          amount: r.data.amount,
+          currency: 'INR',
+          name: 'SnapAlign',
+          description: `Order #${r.data.order_id}`,
+          order_id: r.data.razorpay_order_id,
+          handler: async function (response) {
+            // Verify payment
+            try {
+              await axios.post(`${API}/payment/verify`, {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                order_id: r.data.order_id
+              }, { withCredentials: true });
+              
+              clearCart();
+              navigate(`/checkout/success?order_id=${r.data.order_id}`);
+            } catch (e) {
+              toast.error('Payment verification failed');
+            }
+          },
+          prefill: {
+            name: address.name,
+            email: user?.email || '',
+            contact: address.phone
+          },
+          theme: {
+            color: '#007AFF'
+          },
+          modal: {
+            ondismiss: function() {
+              setProcessing(false);
+              toast.info('Payment cancelled');
+            }
+          }
+        };
+        
+        const razorpay = new window.Razorpay(options);
+        razorpay.open();
+        
+      } else {
+        // Create UPI order
+        const r = await axios.post(`${API}/payment/manual-upi/create-order`, {
+          origin_url: window.location.origin,
+          payment_method: 'manual_upi',
+          coupon_code: couponApplied?.code || null,
+          shipping_address: address,
+          estimated_delivery: estimatedDelivery
+        }, { withCredentials: true });
+        
+        setOrderData(r.data);
+        setStep('payment');
+      }
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Failed to create order');
     }
@@ -421,7 +486,80 @@ export default function Checkout() {
     );
   }
 
-  // Payment QR screen
+  // Payment Method Selection screen
+  if (step === 'payment-select') {
+    return (
+      <div className="min-h-screen bg-black">
+        <div className="max-w-2xl mx-auto px-4 py-8">
+          <button onClick={() => setStep('address')} className="inline-flex items-center gap-1 text-xs text-white/40 hover:text-white mb-6">
+            <ArrowLeft size={12} /> Back to Address
+          </button>
+
+          <div className="bg-[#0A0A0A] border border-white/10 rounded-2xl overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#007AFF]/20 to-purple-500/20 p-6 text-center border-b border-white/10">
+              <h1 className="text-xl font-medium text-white mb-2">Choose Payment Method</h1>
+              <div className="text-3xl font-bold text-white">₹{total.toLocaleString('en-IN')}</div>
+            </div>
+
+            {/* Payment Options */}
+            <div className="p-6 space-y-4">
+              {/* Razorpay Option */}
+              <button 
+                onClick={() => handlePaymentMethodSelect('razorpay')}
+                disabled={processing}
+                className="w-full p-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#007AFF]/50 rounded-xl transition-all flex items-center gap-4 group disabled:opacity-50"
+              >
+                <div className="w-12 h-12 bg-[#007AFF]/20 rounded-xl flex items-center justify-center">
+                  <CreditCard size={24} className="text-[#007AFF]" />
+                </div>
+                <div className="flex-1 text-left">
+                  <h3 className="text-white font-medium">Pay with Card / UPI / Netbanking</h3>
+                  <p className="text-white/50 text-sm">Secure payment via Razorpay</p>
+                </div>
+                <div className="text-white/30 group-hover:text-[#007AFF]">
+                  <ArrowLeft size={16} className="rotate-180" />
+                </div>
+              </button>
+
+              {/* Manual UPI Option */}
+              <button 
+                onClick={() => handlePaymentMethodSelect('upi')}
+                disabled={processing}
+                className="w-full p-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-green-500/50 rounded-xl transition-all flex items-center gap-4 group disabled:opacity-50"
+              >
+                <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
+                  <QrCode size={24} className="text-green-500" />
+                </div>
+                <div className="flex-1 text-left">
+                  <h3 className="text-white font-medium">Pay via UPI (Manual)</h3>
+                  <p className="text-white/50 text-sm">Scan QR code and enter UTR number</p>
+                </div>
+                <div className="text-white/30 group-hover:text-green-500">
+                  <ArrowLeft size={16} className="rotate-180" />
+                </div>
+              </button>
+
+              {processing && (
+                <div className="text-center py-4">
+                  <div className="inline-block w-6 h-6 border-2 border-[#007AFF] border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-white/50 text-sm mt-2">Processing...</p>
+                </div>
+              )}
+            </div>
+
+            {/* Security Badge */}
+            <div className="p-4 border-t border-white/10 flex items-center justify-center gap-2 text-white/40 text-xs">
+              <ShieldCheck size={14} />
+              100% Secure Payments
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Payment QR screen (UPI)
   if (step === 'payment') {
     return (
       <div className="min-h-screen bg-black">
