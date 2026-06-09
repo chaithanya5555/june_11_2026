@@ -172,6 +172,33 @@ export default function Checkout() {
             email: user?.email || '',
             contact: address.phone
           },
+          config: {
+            display: {
+              blocks: {
+                utib: {
+                  name: "Pay using UPI",
+                  instruments: [
+                    {
+                      method: "upi",
+                      flows: ["collect", "intent", "qr"]
+                    }
+                  ]
+                },
+                other: {
+                  name: "Other Payment Methods",
+                  instruments: [
+                    { method: "card" },
+                    { method: "netbanking" },
+                    { method: "wallet" }
+                  ]
+                }
+              },
+              sequence: ["block.utib", "block.other"],
+              preferences: {
+                show_default_blocks: true
+              }
+            }
+          },
           theme: {
             color: '#007AFF'
           },
