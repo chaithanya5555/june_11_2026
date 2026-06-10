@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { CurrencyDollar, Package, Cube, Users, Warning, DownloadSimple, Pencil, Trash, Plus, MagnifyingGlass, MapPin, SignOut, Gear, Lightning, Eye, EyeSlash, Tag, ChartLineUp, UserCircle, WhatsappLogo, QrCode, Check, X, Clock } from '@phosphor-icons/react';
+import { useEffect, useState, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { CurrencyDollar, Package, Cube, Users, Warning, DownloadSimple, Pencil, Trash, Plus, MagnifyingGlass, MapPin, SignOut, Gear, Lightning, Eye, EyeSlash, Tag, ChartLineUp, UserCircle, WhatsappLogo, QrCode, Check, X, Clock, GoogleLogo, EnvelopeSimple, ShieldCheck } from '@phosphor-icons/react';
 import axios from 'axios';
 import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
@@ -20,12 +20,16 @@ const PIE_COLORS = ['#007AFF', '#34C759', '#FF9500', '#FF3B30', '#AF52DE', '#5AC
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [authed, setAuthed] = useState(false);
   const [adminRole, setAdminRole] = useState('owner');
   const [adminName, setAdminName] = useState('');
+  const [adminEmail, setAdminEmail] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
+  const [oauthError, setOauthError] = useState('');
   const [stats, setStats] = useState(null);
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
@@ -41,6 +45,9 @@ export default function AdminDashboard() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [settingsForm, setSettingsForm] = useState({ razorpay_key_id: '', razorpay_key_secret: '', admin_password: '', whatsapp_number: '', upi_id: '', upi_qr_url: '', upi_name: '' });
+  const [allowedAdminEmails, setAllowedAdminEmails] = useState([]);
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminRole, setNewAdminRole] = useState('warehouse_manager');
   const [showSecret, setShowSecret] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [couponDialog, setCouponDialog] = useState(false);
@@ -63,17 +70,57 @@ export default function AdminDashboard() {
 
   const isOwner = adminRole === 'owner';
 
+  // Handle OAuth callback for admin login
+  const handleOAuthCallback = useCallback(async (sessionId) => {
+    setOauthLoading(true);
+    setOauthError('');
+    try {
+      const r = await axios.post(`${API}/admin/oauth-login`, { session_id: sessionId }, { withCredentials: true });
+      setAuthed(true);
+      setAdminRole(r.data.role || 'warehouse_manager');
+      setAdminName(r.data.name || 'Admin');
+      setAdminEmail(r.data.email || '');
+      fetchData(r.data.role || 'warehouse_manager');
+      // Clear the hash from URL
+      window.history.replaceState(null, '', window.location.pathname);
+    } catch (err) {
+      const msg = err.response?.data?.detail || 'OAuth login failed';
+      setOauthError(msg);
+      toast.error(msg);
+    }
+    setOauthLoading(false);
+  }, []);
+
   useEffect(() => {
+    // Check for OAuth callback with session_id in hash
+    const hash = window.location.hash;
+    if (hash?.includes('session_id=')) {
+      const params = new URLSearchParams(hash.slice(1));
+      const sessionId = params.get('session_id');
+      if (sessionId) {
+        handleOAuthCallback(sessionId);
+        return;
+      }
+    }
+    
+    // Normal auth check
     (async () => {
       try {
         const r = await axios.get(`${API}/admin/verify`, { withCredentials: true });
         setAuthed(true);
         setAdminRole(r.data.role || 'owner');
         setAdminName(r.data.name || 'Admin');
+        setAdminEmail(r.data.email || '');
         fetchData(r.data.role || 'owner');
       } catch { setAuthed(false); setLoading(false); }
     })();
-  }, []);
+  }, [handleOAuthCallback]);
+
+  const handleOAuthLogin = () => {
+    // Redirect to Emergent OAuth with admin callback
+    const redirectUrl = window.location.origin + '/admin';
+    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -83,6 +130,7 @@ export default function AdminDashboard() {
       setAuthed(true);
       setAdminRole(r.data.role || 'owner');
       setAdminName(r.data.name || 'Admin');
+      setAdminEmail(r.data.email || '');
       fetchData(r.data.role || 'owner');
     } catch { toast.error('Invalid credentials'); }
   };
@@ -124,6 +172,7 @@ export default function AdminDashboard() {
           upi_qr_url: results[4].data.upi_qr_url || '',
           upi_name: results[4].data.upi_name || ''
         });
+        setAllowedAdminEmails(results[4].data.allowed_admin_emails || []);
         setCoupons(results[5].data);
         setAnalytics(results[6].data);
         setAdminUsers(results[7].data);
@@ -297,37 +346,142 @@ export default function AdminDashboard() {
   const stockLabel = (s) => s < 5 ? 'CRITICAL' : s <= 20 ? 'LOW' : 'IN STOCK';
   const filteredOrders = orders.filter(o => !orderSearch || o.order_id.toLowerCase().includes(orderSearch.toLowerCase()) || (o.user_name || '').toLowerCase().includes(orderSearch.toLowerCase()));
 
+  // Handler to add admin email to whitelist
+  const handleAddAdminEmail = async () => {
+    if (!newAdminEmail || !newAdminEmail.includes('@')) {
+      toast.error('Please enter a valid email');
+      return;
+    }
+    // Check if email already exists
+    if (allowedAdminEmails.some(e => e.email.toLowerCase() === newAdminEmail.toLowerCase())) {
+      toast.error('Email already in the list');
+      return;
+    }
+    const newList = [...allowedAdminEmails, { email: newAdminEmail.toLowerCase(), role: newAdminRole }];
+    try {
+      await axios.put(`${API}/admin/settings`, { allowed_admin_emails: newList }, { withCredentials: true });
+      setAllowedAdminEmails(newList);
+      setNewAdminEmail('');
+      setNewAdminRole('warehouse_manager');
+      toast.success('Admin email added');
+    } catch {
+      toast.error('Failed to add email');
+    }
+  };
+
+  // Handler to remove admin email from whitelist
+  const handleRemoveAdminEmail = async (emailToRemove) => {
+    const newList = allowedAdminEmails.filter(e => e.email.toLowerCase() !== emailToRemove.toLowerCase());
+    try {
+      await axios.put(`${API}/admin/settings`, { allowed_admin_emails: newList }, { withCredentials: true });
+      setAllowedAdminEmails(newList);
+      toast.success('Admin email removed');
+    } catch {
+      toast.error('Failed to remove email');
+    }
+  };
+
+  // Handler to update admin role
+  const handleUpdateAdminRole = async (emailToUpdate, newRole) => {
+    const newList = allowedAdminEmails.map(e => 
+      e.email.toLowerCase() === emailToUpdate.toLowerCase() ? { ...e, role: newRole } : e
+    );
+    try {
+      await axios.put(`${API}/admin/settings`, { allowed_admin_emails: newList }, { withCredentials: true });
+      setAllowedAdminEmails(newList);
+      toast.success('Role updated');
+    } catch {
+      toast.error('Failed to update role');
+    }
+  };
+
   if (!authed) {
     return (
-      <div data-testid="admin-login-page" className="min-h-screen bg-black flex items-center justify-center">
-        <form onSubmit={handleLogin} className="w-96 bg-[#0A0A0A] border border-white/10 rounded-xl p-6">
-          <h1 className="text-lg font-medium text-white mb-1 text-center" style={{ fontFamily: 'var(--font-heading)' }}>Admin Login</h1>
-          <p className="text-[10px] text-white/30 text-center mb-5">Enter credentials to access the dashboard</p>
-          <div className="space-y-3">
-            <Input data-testid="admin-email-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email (e.g. owner@snapalign.com)" className="bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-lg" />
-            <div className="relative">
-              <Input 
-                data-testid="admin-password-input" 
-                type={showLoginPassword ? "text" : "password"} 
-                value={password} 
-                onChange={e => setPassword(e.target.value)} 
-                placeholder="Password" 
-                className="bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-lg pr-10" 
-                required 
-              />
-              <button
-                type="button"
-                onClick={() => setShowLoginPassword(!showLoginPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
-                tabIndex={-1}
-              >
-                {showLoginPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
-              </button>
+      <div data-testid="admin-login-page" className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-4">
+          {/* OAuth Login Card */}
+          <div className="bg-[#0A0A0A] border border-white/10 rounded-xl p-6">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <ShieldCheck size={20} className="text-[#007AFF]" />
+              <h1 className="text-lg font-medium text-white" style={{ fontFamily: 'var(--font-heading)' }}>Admin Login</h1>
             </div>
+            <p className="text-[10px] text-white/30 text-center mb-5">Sign in with your authorized Google account</p>
+            
+            {oauthError && (
+              <div className="mb-4 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-400 text-center">
+                {oauthError}
+              </div>
+            )}
+            
+            <Button 
+              data-testid="admin-oauth-btn" 
+              onClick={handleOAuthLogin}
+              disabled={oauthLoading}
+              className="w-full bg-white hover:bg-gray-100 text-gray-800 rounded-lg flex items-center justify-center gap-2 py-5"
+            >
+              {oauthLoading ? (
+                <span className="animate-pulse">Authenticating...</span>
+              ) : (
+                <>
+                  <GoogleLogo size={20} weight="bold" />
+                  <span className="font-medium">Continue with Google</span>
+                </>
+              )}
+            </Button>
+            
+            <p className="text-[9px] text-white/30 text-center mt-3">
+              Only pre-approved email addresses can access admin
+            </p>
           </div>
-          <Button data-testid="admin-login-btn" type="submit" className="w-full bg-[#007AFF] hover:bg-[#005BB5] text-white rounded-lg mt-4">Login</Button>
-          <p className="text-[9px] text-white/20 text-center mt-3">Legacy: leave email blank, enter admin password only</p>
-        </form>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-white/10"></div>
+            <span className="text-[10px] text-white/30 uppercase tracking-widest">or use password</span>
+            <div className="flex-1 h-px bg-white/10"></div>
+          </div>
+
+          {/* Password Login Card */}
+          <form onSubmit={handleLogin} className="bg-[#0A0A0A] border border-white/10 rounded-xl p-6">
+            <p className="text-[10px] text-white/40 text-center mb-4">Team member or legacy login</p>
+            <div className="space-y-3">
+              <Input 
+                data-testid="admin-email-input" 
+                type="email" 
+                value={email} 
+                onChange={e => setEmail(e.target.value)} 
+                placeholder="Email (optional for legacy login)" 
+                className="bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-lg text-sm" 
+              />
+              <div className="relative">
+                <Input 
+                  data-testid="admin-password-input" 
+                  type={showLoginPassword ? "text" : "password"} 
+                  value={password} 
+                  onChange={e => setPassword(e.target.value)} 
+                  placeholder="Password" 
+                  className="bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-lg pr-10 text-sm" 
+                  required 
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPassword(!showLoginPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+                  tabIndex={-1}
+                >
+                  {showLoginPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+            <Button 
+              data-testid="admin-login-btn" 
+              type="submit" 
+              className="w-full bg-[#007AFF] hover:bg-[#005BB5] text-white rounded-lg mt-4"
+            >
+              Login with Password
+            </Button>
+          </form>
+        </div>
       </div>
     );
   }
@@ -973,6 +1127,102 @@ export default function AdminDashboard() {
                   <div>
                     <Label className="text-white/60 text-xs">New Admin Password</Label>
                     <Input data-testid="settings-admin-password" type="password" value={settingsForm.admin_password} onChange={e => setSettingsForm(f => ({...f, admin_password: e.target.value}))} placeholder="Leave blank to keep current" className="bg-white/5 border-white/10 text-white rounded-lg text-xs" />
+                  </div>
+                </div>
+
+                {/* OAuth Admin Email Whitelist */}
+                <div className="bg-[#0A0A0A] border border-white/10 rounded-xl p-6">
+                  <h3 className="text-base font-medium text-white mb-2 flex items-center gap-2" style={{ fontFamily: 'var(--font-heading)' }}>
+                    <ShieldCheck size={16} className="text-[#007AFF]" /> OAuth Admin Access
+                  </h3>
+                  <p className="text-[10px] text-white/40 mb-4">
+                    Allow specific Google accounts to login as admin via OAuth. First email added gets Owner role by default.
+                  </p>
+                  
+                  {/* Add new email */}
+                  <div className="flex gap-2 mb-4">
+                    <div className="flex-1">
+                      <Input 
+                        data-testid="new-admin-email-input"
+                        type="email" 
+                        value={newAdminEmail} 
+                        onChange={e => setNewAdminEmail(e.target.value)} 
+                        placeholder="email@example.com" 
+                        className="bg-white/5 border-white/10 text-white rounded-lg text-xs" 
+                      />
+                    </div>
+                    <Select value={newAdminRole} onValueChange={setNewAdminRole}>
+                      <SelectTrigger data-testid="new-admin-role-select" className="w-40 bg-white/5 border-white/10 text-white rounded-lg text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#0A0A0A] border-white/10">
+                        <SelectItem value="owner">Owner (Full)</SelectItem>
+                        <SelectItem value="warehouse_manager">Manager (View)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      data-testid="add-admin-email-btn"
+                      onClick={handleAddAdminEmail}
+                      className="bg-[#007AFF] hover:bg-[#005BB5] text-white rounded-lg px-3"
+                      size="sm"
+                    >
+                      <Plus size={16} />
+                    </Button>
+                  </div>
+
+                  {/* List of allowed emails */}
+                  {allowedAdminEmails.length === 0 ? (
+                    <div className="text-center py-6 text-white/30 text-xs">
+                      <EnvelopeSimple size={24} className="mx-auto mb-2 opacity-50" />
+                      No OAuth admin emails configured yet
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {allowedAdminEmails.map((admin, index) => (
+                        <div 
+                          key={admin.email} 
+                          data-testid={`admin-email-${index}`}
+                          className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-lg"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${admin.role === 'owner' ? 'bg-[#007AFF]/20 text-[#007AFF]' : 'bg-white/10 text-white/60'}`}>
+                              {admin.email.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="text-sm text-white">{admin.email}</p>
+                              <p className="text-[10px] text-white/40">
+                                {admin.role === 'owner' ? 'Owner — Full Access' : 'Manager — View Only'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Select 
+                              value={admin.role} 
+                              onValueChange={(v) => handleUpdateAdminRole(admin.email, v)}
+                            >
+                              <SelectTrigger className="w-28 h-7 bg-white/5 border-white/10 text-white rounded text-[10px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-[#0A0A0A] border-white/10">
+                                <SelectItem value="owner" className="text-xs">Owner</SelectItem>
+                                <SelectItem value="warehouse_manager" className="text-xs">Manager</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <button 
+                              data-testid={`remove-admin-email-${index}`}
+                              onClick={() => handleRemoveAdminEmail(admin.email)}
+                              className="p-1.5 text-white/30 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                            >
+                              <Trash size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <div className="mt-4 px-3 py-2 bg-blue-500/5 border border-blue-500/10 rounded-lg text-[10px] text-blue-400/70">
+                    <strong>Note:</strong> Users with these emails can login via "Continue with Google" on the admin page. Owner role has full access, Manager role is view-only.
                   </div>
                 </div>
 

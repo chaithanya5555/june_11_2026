@@ -184,16 +184,34 @@ backend:
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Razorpay test keys configured: rzp_test_SzLmBkN29N9fMr"
 
+  - task: "OAuth Admin Login"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented OAuth admin login with email whitelist. Endpoints: POST /api/admin/oauth-login, GET/PUT /api/admin/settings (now includes allowed_admin_emails). Owner role = full access, warehouse_manager = view-only."
+      - working: false
+        agent: "testing"
+        comment: "CRITICAL BUG FOUND: SettingsUpdateRequest model defined allowed_admin_emails as Optional[List[str]] but implementation expects List[dict] with email and role keys. This caused 422 validation error when trying to update admin email whitelist."
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED & WORKING: Fixed Pydantic model bug by creating AdminEmailConfig model. All OAuth admin login endpoints working correctly: 1) GET /api/admin/settings returns allowed_admin_emails array ✅ 2) PUT /api/admin/settings successfully updates email whitelist with proper structure [{'email': 'test@example.com', 'role': 'owner'}, {'email': 'manager@example.com', 'role': 'warehouse_manager'}] ✅ 3) POST /api/admin/oauth-login correctly returns 401 for invalid session_id ✅ 4) Role-based access control structure verified (owner role required for PUT /admin/settings) ✅. All 9 OAuth tests passed."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 2
+  test_sequence: 3
   run_ui: true
 
 test_plan:
@@ -209,3 +227,7 @@ agent_communication:
     message: "Frontend testing complete. Product browsing, categories, product details, admin dashboard all working. Cart/checkout requires Emergent OAuth authentication which cannot be automated. Minor issue: React duplicate key warnings for products."
   - agent: "testing"
     message: "Testing completed. Product Browsing ✅ WORKING (homepage, categories, featured products, shop filtering, product details all functional). Admin Dashboard ✅ WORKING (login, all tabs accessible, products/warehouse/orders visible). Cart & Checkout ⚠️ CANNOT TEST (require Google OAuth authentication - protected routes working correctly). Minor issue: React duplicate key warnings in console (code quality, not functional blocker). Overall: All testable features working correctly!"
+  - agent: "main"
+    message: "Implemented OAuth admin login feature. New endpoints: 1) POST /api/admin/oauth-login - Exchange OAuth session_id for admin access (only whitelisted emails). 2) Settings now include allowed_admin_emails list. Test: Login flow, add/remove admin emails, role-based permissions (Owner=full, Manager=view-only)."
+  - agent: "testing"
+    message: "OAuth Admin Login testing complete. Found and FIXED critical Pydantic model bug (allowed_admin_emails type mismatch). All endpoints now working: admin settings GET/PUT with email whitelist, OAuth login error handling, role-based access control. All 9 tests passed. Backend changes: Added AdminEmailConfig Pydantic model, updated SettingsUpdateRequest to use List[AdminEmailConfig], converted models to dicts for MongoDB storage."

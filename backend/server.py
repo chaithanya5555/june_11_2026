@@ -125,6 +125,10 @@ class RazorpayVerifyRequest(BaseModel):
     razorpay_signature: str
     order_id: str
 
+class AdminEmailConfig(BaseModel):
+    email: str
+    role: str  # "owner" or "warehouse_manager"
+
 class SettingsUpdateRequest(BaseModel):
     razorpay_key_id: Optional[str] = None
     razorpay_key_secret: Optional[str] = None
@@ -133,6 +137,7 @@ class SettingsUpdateRequest(BaseModel):
     upi_id: Optional[str] = None
     upi_qr_url: Optional[str] = None
     upi_name: Optional[str] = None
+    allowed_admin_emails: Optional[List[AdminEmailConfig]] = None
 
 class OrderStatusUpdate(BaseModel):
     status: Optional[str] = None
@@ -141,6 +146,9 @@ class OrderStatusUpdate(BaseModel):
 class AdminLoginRequest(BaseModel):
     email: Optional[str] = None
     password: str
+
+class AdminOAuthLoginRequest(BaseModel):
+    session_id: str
 
 class TrackRequest(BaseModel):
     order_id: str
@@ -289,6 +297,61 @@ async def logout(request: Request, response: Response):
     return {"message": "Logged out"}
 
 # ── Admin Auth (RBAC) ──
+async def get_allowed_admin_emails() -> List[dict]:
+    """Get list of allowed admin emails with their roles"""
+    settings = await db.admin_settings.find_one({"setting_id": "global"}, {"_id": 0})
+    if settings and settings.get("allowed_admin_emails"):
+        return settings["allowed_admin_emails"]
+    return []
+
+async def is_email_allowed_admin(email: str) -> Optional[dict]:
+    """Check if email is in the allowed admin list and return its config"""
+    allowed = await get_allowed_admin_emails()
+    email_lower = email.lower().strip()
+    for admin_config in allowed:
+        if admin_config.get("email", "").lower() == email_lower:
+            return admin_config
+    return None
+
+@api_router.post("/admin/oauth-login")
+async def admin_oauth_login(req: AdminOAuthLoginRequest, response: Response):
+    """Login to admin via OAuth - only allowed for whitelisted emails"""
+    # Exchange session_id with Emergent OAuth
+    async with httpx.AsyncClient() as http_client:
+        resp = await http_client.get(
+            "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data",
+            headers={"X-Session-ID": req.session_id}
+        )
+    if resp.status_code != 200:
+        raise HTTPException(status_code=401, detail="Invalid OAuth session")
+    
+    data = resp.json()
+    email = data["email"].lower().strip()
+    name = data.get("name", email.split("@")[0])
+    
+    # Check if email is in allowed admin list
+    admin_config = await is_email_allowed_admin(email)
+    if not admin_config:
+        raise HTTPException(status_code=403, detail="This email is not authorized for admin access")
+    
+    # Determine role from config (first email = owner, others = warehouse_manager by default)
+    role = admin_config.get("role", "warehouse_manager")
+    
+    # Create admin session
+    token = f"admin_{uuid.uuid4().hex}"
+    await db.admin_sessions.insert_one({
+        "token": token,
+        "role": role,
+        "name": name,
+        "email": email,
+        "oauth_login": True,
+        "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    response.set_cookie(key="admin_token", value=token, httponly=True, secure=True, samesite="none", path="/", max_age=7*24*60*60)
+    return {"message": "Logged in via OAuth", "token": token, "role": role, "name": name, "email": email}
+
 @api_router.post("/admin/login")
 async def admin_login(req: AdminLoginRequest, response: Response):
     if req.email:
@@ -1270,7 +1333,7 @@ async def admin_delete_user(admin_user_id: str, request: Request):
         raise HTTPException(status_code=404, detail="Admin user not found")
     return {"message": "Admin user deleted"}
 
-# ── Admin Settings (Key Management + WhatsApp + UPI) ──
+# ── Admin Settings (Key Management + WhatsApp + UPI + Admin Email Whitelist) ──
 @api_router.get("/admin/settings")
 async def admin_get_settings(request: Request):
     await require_admin(request)
@@ -1284,6 +1347,7 @@ async def admin_get_settings(request: Request):
         "upi_id": extra.get("upi_id", UPI_ID) if extra else UPI_ID,
         "upi_qr_url": extra.get("upi_qr_url", UPI_QR_URL) if extra else UPI_QR_URL,
         "upi_name": extra.get("upi_name", UPI_NAME) if extra else UPI_NAME,
+        "allowed_admin_emails": extra.get("allowed_admin_emails", []) if extra else [],
     }
 
 @api_router.put("/admin/settings")
@@ -1310,7 +1374,7 @@ async def admin_update_settings(req: SettingsUpdateRequest, request: Request):
         updated.append("admin_password")
     env_path.write_text(env_content)
     
-    # Update database settings (WhatsApp + UPI)
+    # Update database settings (WhatsApp + UPI + Admin Emails)
     db_updates = {"updated_at": datetime.now(timezone.utc).isoformat()}
     if req.whatsapp_number is not None:
         db_updates["whatsapp_number"] = req.whatsapp_number
@@ -1324,6 +1388,10 @@ async def admin_update_settings(req: SettingsUpdateRequest, request: Request):
     if req.upi_name is not None:
         db_updates["upi_name"] = req.upi_name
         updated.append("upi_name")
+    if req.allowed_admin_emails is not None:
+        # Convert Pydantic models to dicts for MongoDB storage
+        db_updates["allowed_admin_emails"] = [email.model_dump() for email in req.allowed_admin_emails]
+        updated.append("allowed_admin_emails")
     
     if len(db_updates) > 1:  # More than just updated_at
         await db.admin_settings.update_one(
