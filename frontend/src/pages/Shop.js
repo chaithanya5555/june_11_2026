@@ -341,7 +341,7 @@ export default function Shop() {
             )}
             {search && (
               <div className="bg-[#007AFF]/20 border border-[#007AFF]/30 rounded-lg px-3 py-1 flex items-center gap-2">
-                <span className="text-xs text-[#007AFF]">Search: "{search}"</span>
+                <span className="text-xs text-[#007AFF]">Search: &quot;{search}&quot;</span>
                 <button onClick={() => { setFilter('search', ''); setSearchInput(''); }} className="text-[#007AFF] hover:text-white">
                   <X size={12} />
                 </button>

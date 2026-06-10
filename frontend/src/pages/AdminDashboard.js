@@ -826,7 +826,7 @@ export default function AdminDashboard() {
                       <ResponsiveContainer width="100%" height={250}>
                         <PieChart>
                           <Pie data={analytics.status_breakdown} dataKey="count" nameKey="status" cx="50%" cy="50%" outerRadius={90} label={({ status, count }) => `${status} (${count})`} labelLine={false}>
-                            {analytics.status_breakdown.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                            {analytics.status_breakdown.map((item, i) => <Cell key={item.status || `status-${i}`} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                           </Pie>
                           <Tooltip contentStyle={{ background: '#0A0A0A', border: '1px solid #222', borderRadius: 8, fontSize: 11 }} />
                         </PieChart>
@@ -839,7 +839,7 @@ export default function AdminDashboard() {
                     <h3 className="text-sm font-medium text-white mb-4" style={{ fontFamily: 'var(--font-heading)' }}>Top Selling Products</h3>
                     <div className="space-y-2">
                       {analytics.top_products.map((p, i) => (
-                        <div key={i} className="flex items-center gap-3 p-2 bg-white/[0.02] rounded-lg">
+                        <div key={p.product_id || p.name || `product-${i}`} className="flex items-center gap-3 p-2 bg-white/[0.02] rounded-lg">
                           <span className="text-[10px] font-bold text-white/30 w-6 text-center">#{i + 1}</span>
                           <span className="text-xs text-white flex-1 truncate">{p.name}</span>
                           <span className="text-[10px] text-white/40">{p.quantity} sold</span>

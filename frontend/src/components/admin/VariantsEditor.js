@@ -156,7 +156,7 @@ export default function VariantsEditor({ axes = [], variants = [], onAxesChange,
           </div>
           <div className="space-y-2">
             {safeAxes.map((axis, idx) => (
-              <div key={idx} data-testid={`axis-row-${idx}`} className="grid grid-cols-12 gap-2 items-center p-2 bg-black/30 rounded border border-white/5">
+              <div key={axis.key || `axis-${idx}`} data-testid={`axis-row-${idx}`} className="grid grid-cols-12 gap-2 items-center p-2 bg-black/30 rounded border border-white/5">
                 <div className="col-span-3">
                   <Input
                     value={axis.key || ''}

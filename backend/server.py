@@ -380,10 +380,14 @@ async def get_products(
         query["featured"] = featured
     
     sort_field = [("created_at", -1)]
-    if sort == "price_asc": sort_field = [("price", 1)]
-    elif sort == "price_desc": sort_field = [("price", -1)]
-    elif sort == "name": sort_field = [("name", 1)]
-    elif sort == "rating": sort_field = [("rating", -1)]
+    if sort == "price_asc":
+        sort_field = [("price", 1)]
+    elif sort == "price_desc":
+        sort_field = [("price", -1)]
+    elif sort == "name":
+        sort_field = [("name", 1)]
+    elif sort == "rating":
+        sort_field = [("rating", -1)]
     
     products = await db.products.find(query, {"_id": 0}).sort(sort_field).to_list(200)
     return products
@@ -557,7 +561,8 @@ async def get_wishlist(request: Request):
     products = []
     for item in items:
         p = await db.products.find_one({"product_id": item["product_id"]}, {"_id": 0})
-        if p: products.append(p)
+        if p:
+            products.append(p)
     return products
 
 @api_router.post("/wishlist/{product_id}")
@@ -1141,8 +1146,10 @@ async def admin_orders(request: Request):
 async def admin_update_order(order_id: str, update: OrderStatusUpdate, request: Request):
     await require_admin(request)
     update_data = {}
-    if update.status: update_data["status"] = update.status
-    if update.tracking_number is not None: update_data["tracking_number"] = update.tracking_number
+    if update.status:
+        update_data["status"] = update.status
+    if update.tracking_number is not None:
+        update_data["tracking_number"] = update.tracking_number
     if not update_data:
         raise HTTPException(status_code=400, detail="Nothing to update")
     result = await db.orders.update_one({"order_id": order_id}, {"$set": update_data})
