@@ -29,8 +29,13 @@ function ProtectedRoute({ children }) {
 function AppRouter() {
   const location = useLocation();
   
-  // Handle OAuth callback - but NOT for admin page (admin handles its own OAuth)
-  if (location.hash?.includes('session_id=') && location.pathname !== '/admin') {
+  // Admin page handles its own OAuth - render it directly without Navbar
+  if (location.pathname === '/admin') {
+    return <AdminDashboard />;
+  }
+  
+  // Handle OAuth callback for customer login (NOT admin)
+  if (location.hash?.includes('session_id=')) {
     return <AuthCallback />;
   }
 
@@ -47,7 +52,6 @@ function AppRouter() {
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
-        <Route path="/admin" element={<AdminDashboard />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
