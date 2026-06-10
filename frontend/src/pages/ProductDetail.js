@@ -241,7 +241,7 @@ export default function ProductDetail() {
             >
               {slides.map((slide, idx) => (
                 <div
-                  key={idx}
+                  key={`${slide.kind}-${slide.url}-${idx}`}
                   className={`absolute inset-0 transition-opacity duration-300 ${idx === activeSlide ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}
                 >
                   {slide.kind === 'image' ? (
@@ -288,7 +288,7 @@ export default function ProductDetail() {
               <div className="flex gap-2 overflow-x-auto pb-1" data-testid="carousel-thumbs">
                 {slides.map((slide, idx) => (
                   <button
-                    key={idx}
+                    key={`thumb-${slide.kind}-${slide.url}-${idx}`}
                     data-testid={`carousel-thumb-${idx}`}
                     onClick={() => setActiveSlide(idx)}
                     className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border transition-colors ${idx === activeSlide ? 'border-[#007AFF]' : 'border-white/10 hover:border-white/30'}`}

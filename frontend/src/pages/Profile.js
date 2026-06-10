@@ -24,7 +24,12 @@ export default function Profile() {
   useEffect(() => {
     if (!user) { login(); return; }
     (async () => {
-      try { const r = await axios.get(`${API}/orders`, { withCredentials: true }); setOrders(r.data); } catch {}
+      try { 
+        const r = await axios.get(`${API}/orders`, { withCredentials: true }); 
+        setOrders(r.data); 
+      } catch { 
+        setOrders([]); 
+      }
       setLoading(false);
     })();
   }, [user, login]);

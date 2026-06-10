@@ -16,7 +16,12 @@ export default function Wishlist() {
   useEffect(() => {
     if (!user) { login(); return; }
     (async () => {
-      try { const r = await axios.get(`${API}/wishlist`, { withCredentials: true }); setProducts(r.data); } catch {}
+      try { 
+        const r = await axios.get(`${API}/wishlist`, { withCredentials: true }); 
+        setProducts(r.data); 
+      } catch { 
+        setProducts([]); 
+      }
       setLoading(false);
     })();
   }, [user, login]);

@@ -131,9 +131,13 @@ export default function AdminDashboard() {
         try {
           const utrRes = await axios.get(`${API}/admin/pending-utr`, { withCredentials: true });
           setPendingUTR(utrRes.data);
-        } catch (e) { console.error('Failed to fetch pending UTR', e); }
+        } catch { 
+          setPendingUTR([]); 
+        }
       }
-    } catch (err) { console.error(err); }
+    } catch { 
+      // Failed to load admin data 
+    }
     setLoading(false);
   };
 
@@ -348,8 +352,8 @@ export default function AdminDashboard() {
               { label: 'Projected', value: `₹${stats.projected_revenue.toLocaleString('en-IN')}`, icon: <Lightning size={16} />, cls: 'text-[#007AFF]', sub: `After ${stats.total_fees.toLocaleString('en-IN')} (2%) fee` },
               { label: 'Orders', value: stats.total_orders, icon: <Package size={16} />, cls: 'text-white' },
               { label: 'Users', value: stats.total_users, icon: <Users size={16} />, cls: 'text-white' },
-            ].map((s, i) => (
-              <div key={i} data-testid={`stat-${s.label.toLowerCase()}`} className="bg-[#0A0A0A] border border-white/10 rounded-xl p-4">
+            ].map((s) => (
+              <div key={s.label} data-testid={`stat-${s.label.toLowerCase()}`} className="bg-[#0A0A0A] border border-white/10 rounded-xl p-4">
                 <div className="flex items-center gap-2 text-white/40 mb-1">{s.icon}<span className="text-[10px] uppercase tracking-widest">{s.label}</span></div>
                 <p className={`text-lg font-semibold ${s.cls}`} style={{ fontFamily: 'var(--font-heading)' }}>{s.value}</p>
                 {s.sub && <p className="text-[9px] text-white/30 mt-0.5">{s.sub}</p>}

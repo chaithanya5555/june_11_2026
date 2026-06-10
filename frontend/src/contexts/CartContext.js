@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
 
@@ -60,8 +60,12 @@ export function CartProvider({ children }) {
     return sum + (base + mod) * item.quantity;
   }, 0);
 
+  const contextValue = useMemo(() => ({ 
+    cartItems, cartOpen, setCartOpen, addToCart, updateQuantity, removeFromCart, clearCart, fetchCart, cartCount, cartTotal 
+  }), [cartItems, cartOpen, addToCart, updateQuantity, removeFromCart, clearCart, fetchCart, cartCount, cartTotal]);
+
   return (
-    <CartContext.Provider value={{ cartItems, cartOpen, setCartOpen, addToCart, updateQuantity, removeFromCart, clearCart, fetchCart, cartCount, cartTotal }}>
+    <CartContext.Provider value={contextValue}>
       {children}
     </CartContext.Provider>
   );

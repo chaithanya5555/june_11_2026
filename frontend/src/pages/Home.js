@@ -19,8 +19,13 @@ export default function Home() {
 
   useEffect(() => {
     (async () => {
-      try { await axios.post(`${API}/seed`); } catch {}
-      try { const res = await axios.get(`${API}/products?featured=true`); setFeatured(res.data.slice(0, 6)); } catch {}
+      try { await axios.post(`${API}/seed`); } catch { /* Seed already done or failed - ignore */ }
+      try { 
+        const res = await axios.get(`${API}/products?featured=true`); 
+        setFeatured(res.data.slice(0, 6)); 
+      } catch { 
+        setFeatured([]); 
+      }
       setLoaded(true);
     })();
   }, []);

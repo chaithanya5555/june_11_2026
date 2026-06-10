@@ -40,8 +40,10 @@ export default function Shop() {
         ]);
         setBrands(brandsRes.data);
         setCategories(catsRes.data);
-      } catch (e) {
-        console.error('Failed to fetch filters', e);
+      } catch {
+        // Failed to fetch filters - use empty defaults
+        setBrands([]);
+        setCategories([]);
       }
     })();
   }, []);
