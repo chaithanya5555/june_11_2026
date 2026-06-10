@@ -1,214 +1,154 @@
-# SnapAlign Deployment Guide
-## Free Stack: Vercel + Render + MongoDB Atlas
+# SnapAlign Free Deployment Guide
 
-**Your Domain:** snapalign.in (currently on Netlify)
+Deploy your SnapAlign e-commerce website for FREE using:
+- **MongoDB Atlas** (Database) - Free 512MB
+- **Render** (Backend) - Free tier
+- **Vercel** (Frontend) - Free tier
 
 ---
 
-## 🗄️ STEP 1: MongoDB Atlas Setup (5 mins)
+## Step 1: MongoDB Atlas (Database)
 
-### 1.1 Create Account & Cluster
 1. Go to [mongodb.com/atlas](https://www.mongodb.com/cloud/atlas/register)
-2. Sign up (free)
-3. Create Organization → Create Project named `snapalign`
-4. Click **"Build a Database"**
-5. Select **M0 FREE** tier
-6. Choose **aws** provider, Region: **Mumbai (ap-south-1)** (closest to India)
-7. Cluster name: `snapalign-cluster`
-8. Click **"Create Cluster"** (takes 1-3 mins)
+2. Create a free account
+3. Click **"Build a Database"** → Select **"M0 FREE"**
+4. Choose a cloud provider & region (any works)
+5. Set **Database Access**:
+   - Click "Database Access" → "Add New Database User"
+   - Username: `snapalign`
+   - Password: Create a strong password (save it!)
+   - Role: "Read and write to any database"
+6. Set **Network Access**:
+   - Click "Network Access" → "Add IP Address"
+   - Click **"Allow Access from Anywhere"** (0.0.0.0/0)
+7. Get Connection String:
+   - Go to "Database" → Click **"Connect"**
+   - Select "Connect your application"
+   - Copy the connection string
+   - Replace `<password>` with your actual password
+   - Replace `<dbname>` with `snapalign`
 
-### 1.2 Create Database User
-1. Go to **Database Access** (left sidebar)
-2. Click **"Add New Database User"**
-3. Authentication: Password
-4. Username: `snapalign_user`
-5. Password: Generate secure password → **SAVE THIS PASSWORD**
-6. Database User Privileges: **Read and write to any database**
-7. Click **"Add User"**
-
-### 1.3 Configure Network Access
-1. Go to **Network Access** (left sidebar)
-2. Click **"Add IP Address"**
-3. Click **"Allow Access from Anywhere"** (adds `0.0.0.0/0`)
-4. Click **"Confirm"**
-
-### 1.4 Get Connection String
-1. Go to **Database** (left sidebar)
-2. Click **"Connect"** on your cluster
-3. Choose **"Connect your application"**
-4. Driver: Python, Version: 3.12 or later
-5. Copy connection string:
-   ```
-   mongodb+srv://snapalign_user:<password>@snapalign-cluster.xxxxx.mongodb.net/snapalign?retryWrites=true&w=majority
-   ```
-6. Replace `<password>` with your actual password
-7. **SAVE THIS URL** - you'll need it for Render
-
----
-
-## 🖥️ STEP 2: Deploy Backend on Render (10 mins)
-
-### 2.1 Push Code to GitHub
-If not already done:
-```bash
-git init
-git add .
-git commit -m "SnapAlign ready for deployment"
-git remote add origin https://github.com/YOUR_USERNAME/snapalign.git
-git push -u origin main
+**Your MONGO_URL will look like:**
+```
+mongodb+srv://snapalign:YOUR_PASSWORD@cluster0.xxxxx.mongodb.net/snapalign?retryWrites=true&w=majority
 ```
 
-### 2.2 Create Render Account & Service
-1. Go to [render.com](https://render.com) → Sign up (free)
+---
+
+## Step 2: Render (Backend)
+
+1. Go to [render.com](https://render.com) and sign up (use GitHub)
 2. Click **"New +"** → **"Web Service"**
-3. Connect GitHub → Select your `snapalign` repo
+3. Connect your GitHub repository (or use "Public Git repository")
 4. Configure:
-
-| Setting | Value |
-|---------|-------|
-| Name | `snapalign-backend` |
-| Region | `Singapore (Southeast Asia)` |
-| Branch | `main` |
-| Root Directory | `backend` |
-| Runtime | `Python 3` |
-| Build Command | `pip install -r requirements.txt` |
-| Start Command | `uvicorn server:app --host 0.0.0.0 --port $PORT` |
-| Instance Type | `Free` |
-
-### 2.3 Add Environment Variables
-In Render dashboard → Environment tab:
-
-| Key | Value |
-|-----|-------|
-| `MONGO_URL` | `mongodb+srv://snapalign_user:YOUR_PASSWORD@snapalign-cluster.xxxxx.mongodb.net/snapalign?retryWrites=true&w=majority` |
-| `DB_NAME` | `snapalign` |
-| `CORS_ORIGINS` | `*` |
-| `ADMIN_PASSWORD` | `snapalign2026` (or your preferred password) |
-| `RAZORPAY_KEY_ID` | `rzp_test_DEMO_MODE` (or your real key) |
-| `RAZORPAY_KEY_SECRET` | `DEMO_SECRET_REPLACE_ME` (or your real secret) |
-
-### 2.4 Deploy
-1. Click **"Create Web Service"**
-2. Wait for deployment (5-10 mins first time)
-3. Copy your backend URL: `https://snapalign-backend.onrender.com`
-4. Test: Visit `https://snapalign-backend.onrender.com/api/health`
+   - **Name:** `snapalign-backend`
+   - **Region:** Choose nearest to your users
+   - **Branch:** `main`
+   - **Root Directory:** `backend`
+   - **Runtime:** `Python 3`
+   - **Build Command:** `pip install -r requirements.txt`
+   - **Start Command:** `uvicorn server:app --host 0.0.0.0 --port $PORT`
+5. Select **"Free"** plan
+6. Add **Environment Variables:**
+   ```
+   MONGO_URL = <your MongoDB Atlas connection string>
+   DB_NAME = snapalign
+   ADMIN_PASSWORD = snapalign2026
+   RAZORPAY_KEY_ID = rzp_test_SzLmBkN29N9fMr
+   RAZORPAY_KEY_SECRET = tpU4YCo3WkSecrH1C3Y7cMgY
+   ```
+7. Click **"Create Web Service"**
+8. Wait for deployment (5-10 minutes)
+9. Copy your backend URL: `https://snapalign-backend.onrender.com`
 
 ---
 
-## 🌐 STEP 3: Deploy Frontend on Vercel (10 mins)
+## Step 3: Vercel (Frontend)
 
-### 3.1 Create Vercel Account
-1. Go to [vercel.com](https://vercel.com) → Sign up with GitHub
+1. Go to [vercel.com](https://vercel.com) and sign up (use GitHub)
 2. Click **"Add New..."** → **"Project"**
-3. Import your `snapalign` GitHub repo
-
-### 3.2 Configure Build Settings
-| Setting | Value |
-|---------|-------|
-| Framework Preset | `Create React App` |
-| Root Directory | `frontend` |
-| Build Command | `yarn build` |
-| Output Directory | `build` |
-
-### 3.3 Add Environment Variables
-| Key | Value |
-|-----|-------|
-| `REACT_APP_BACKEND_URL` | `https://snapalign-backend.onrender.com` |
-
-### 3.4 Deploy
-1. Click **"Deploy"**
-2. Wait 2-3 mins
-3. Your app is live at: `https://snapalign.vercel.app`
+3. Import your GitHub repository
+4. Configure:
+   - **Framework Preset:** Create React App
+   - **Root Directory:** `frontend`
+   - **Build Command:** `yarn build`
+   - **Output Directory:** `build`
+5. Add **Environment Variable:**
+   ```
+   REACT_APP_BACKEND_URL = https://snapalign-backend.onrender.com
+   ```
+   (Use your actual Render backend URL from Step 2)
+6. Click **"Deploy"**
+7. Wait for deployment (2-3 minutes)
+8. Your site is live! 🎉
 
 ---
 
-## 🔗 STEP 4: Connect Your Domain (snapalign.in)
+## Step 4: Initialize Data
 
-### Option A: Point Domain to Vercel (Recommended)
+After deployment, seed the database:
 
-#### 4.1 Add Domain in Vercel
-1. Go to your Vercel project → **Settings** → **Domains**
-2. Add domain: `snapalign.in`
-3. Also add: `www.snapalign.in`
-
-#### 4.2 Update DNS in Netlify (or your domain registrar)
-1. Go to Netlify → Domain settings for snapalign.in
-2. Remove existing DNS records
-3. Add new records:
-
-| Type | Name | Value |
-|------|------|-------|
-| A | @ | `76.76.21.21` |
-| CNAME | www | `cname.vercel-dns.com` |
-
-#### 4.3 Wait for Propagation
-- Takes 5 mins to 48 hours
-- Check: [dnschecker.org](https://dnschecker.org)
-
-### Option B: Transfer Domain from Netlify to Vercel
-
-1. In Netlify: Domain settings → Remove domain
-2. In Vercel: Add domain → Follow verification steps
-3. Update nameservers at your registrar (GoDaddy/Namecheap/etc)
+```bash
+curl -X POST https://snapalign-backend.onrender.com/api/seed
+```
 
 ---
 
-## ✅ STEP 5: Final Verification
+## Important Notes
 
-### Test Checklist:
-- [ ] `https://snapalign.in` loads homepage
-- [ ] Products display correctly
-- [ ] Google login works
-- [ ] Add to cart works
-- [ ] Checkout process works (demo mode)
-- [ ] Admin panel accessible at `/admin`
-- [ ] Order tracking works at `/track`
+### ⚠️ Free Tier Limitations
 
-### If Checkout Not Working:
-1. Check browser console (F12) for errors
-2. Verify `REACT_APP_BACKEND_URL` is correct in Vercel
-3. Test backend directly: `https://snapalign-backend.onrender.com/api/payment/config`
-4. Check Render logs for backend errors
+- **Render Free Tier:** Backend sleeps after 15 minutes of inactivity
+  - First request after sleep takes 30-60 seconds (cold start)
+  - Keep-alive services can help (but may violate ToS)
 
----
+- **MongoDB Atlas Free:** 512MB storage limit
+  - Enough for thousands of products and orders
 
-## 🔧 Troubleshooting
+- **Vercel Free:** 100GB bandwidth/month
+  - More than enough for most small businesses
 
-### Backend "Sleeping" on Render Free Tier
-- First request after 15 mins inactivity takes ~30 seconds
-- Solution: Use [UptimeRobot](https://uptimerobot.com) to ping every 14 mins (free)
+### 🔧 Updating Your Site
 
-### CORS Errors
-- Ensure `CORS_ORIGINS=*` in Render environment
-- Or set specific: `CORS_ORIGINS=https://snapalign.in,https://www.snapalign.in`
+1. Push changes to GitHub
+2. Render & Vercel auto-deploy on push
+3. Database persists between deployments
 
-### MongoDB Connection Failed
-- Verify connection string in Render
-- Check Network Access allows `0.0.0.0/0`
-- Ensure password has no special characters that need encoding
+### 🔒 Security Checklist
+
+- [ ] Change `ADMIN_PASSWORD` to something secure
+- [ ] Use strong MongoDB password
+- [ ] Update Razorpay to live keys for production
+- [ ] Add allowed admin emails for OAuth
 
 ---
 
-## 📊 Cost Summary
+## Troubleshooting
+
+**Backend not starting?**
+- Check Render logs for errors
+- Verify MONGO_URL is correct
+- Ensure IP is whitelisted in MongoDB Atlas
+
+**Frontend can't reach backend?**
+- Check REACT_APP_BACKEND_URL is correct
+- Verify backend is running on Render
+- Check browser console for CORS errors
+
+**Database connection failed?**
+- Verify MongoDB Atlas IP whitelist includes 0.0.0.0/0
+- Check username/password in connection string
+- Ensure cluster is not paused (Atlas pauses after 60 days inactivity)
+
+---
+
+## Estimated Costs: $0/month
 
 | Service | Plan | Cost |
 |---------|------|------|
-| MongoDB Atlas | M0 Free | $0 |
+| MongoDB Atlas | M0 (Free) | $0 |
 | Render | Free | $0 |
 | Vercel | Hobby | $0 |
-| **Total** | | **$0/month** |
+| **Total** | | **$0** |
 
----
-
-## 🚀 Production Upgrade Path
-
-When ready for production (removes sleep, faster):
-
-| Service | Paid Plan | Cost |
-|---------|-----------|------|
-| MongoDB Atlas | M10 | $57/month |
-| Render | Starter | $7/month |
-| Vercel | Pro | $20/month |
-| **Total** | | **$84/month** |
-
-Or use **Emergent**: $10/month for everything!
+Upgrade to paid plans when your business grows! 🚀
