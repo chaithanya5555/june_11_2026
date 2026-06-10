@@ -28,7 +28,11 @@ function ProtectedRoute({ children }) {
 
 function AppRouter() {
   const location = useLocation();
-  if (location.hash?.includes('session_id=')) return <AuthCallback />;
+  
+  // Handle OAuth callback - but NOT for admin page (admin handles its own OAuth)
+  if (location.hash?.includes('session_id=') && location.pathname !== '/admin') {
+    return <AuthCallback />;
+  }
 
   return (
     <>
