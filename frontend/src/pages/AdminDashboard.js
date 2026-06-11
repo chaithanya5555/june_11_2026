@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { CurrencyDollar, Package, Cube, Users, Warning, DownloadSimple, Pencil, Trash, Plus, MagnifyingGlass, MapPin, SignOut, Gear, Lightning, Eye, EyeSlash, Tag, ChartLineUp, UserCircle, Check, X, GoogleLogo, EnvelopeSimple, ShieldCheck, WhatsappLogo } from '@phosphor-icons/react';
+import { CurrencyDollar, Package, Cube, Users, Warning, DownloadSimple, Pencil, Trash, Plus, MagnifyingGlass, MapPin, SignOut, Gear, Lightning, Eye, EyeSlash, Tag, ChartLineUp, UserCircle, Check, X, GoogleLogo, EnvelopeSimple, ShieldCheck, WhatsappLogo, Calendar, Funnel } from '@phosphor-icons/react';
 import axios from 'axios';
 import { Button } from '../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
@@ -40,6 +40,8 @@ export default function AdminDashboard() {
   const [adminUsers, setAdminUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [orderSearch, setOrderSearch] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState('all');
+  const [orderDateFilter, setOrderDateFilter] = useState('all'); // 'all', 'today', 'week', 'month'
   const [trackingInputs, setTrackingInputs] = useState({});
   const [productForm, setProductForm] = useState({ name: '', description: '', price: '', cost_price: '', compare_at_price: '', category: 'Cases', brand: '', device_model: '', subcategory: '', image: '', stock: '100', bin_location: '', featured: false, warranty: '', images_text: '', video: '', variant_axes: [], variants: [] });
   const [editingProduct, setEditingProduct] = useState(null);
@@ -324,7 +326,58 @@ export default function AdminDashboard() {
 
   const stockColor = (s) => s < 5 ? 'text-red-400 bg-red-500/10' : s <= 20 ? 'text-amber-400 bg-amber-500/10' : 'text-green-400 bg-green-500/10';
   const stockLabel = (s) => s < 5 ? 'CRITICAL' : s <= 20 ? 'LOW' : 'IN STOCK';
-  const filteredOrders = orders.filter(o => !orderSearch || o.order_id.toLowerCase().includes(orderSearch.toLowerCase()) || (o.user_name || '').toLowerCase().includes(orderSearch.toLowerCase()));
+  
+  // Date filter helper
+  const isWithinDateFilter = (dateStr) => {
+    if (!dateStr || orderDateFilter === 'all') return true;
+    const orderDate = new Date(dateStr);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    switch (orderDateFilter) {
+      case 'today':
+        return orderDate >= today;
+      case 'week':
+        const weekAgo = new Date(today);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        return orderDate >= weekAgo;
+      case 'month':
+        const monthAgo = new Date(today);
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+        return orderDate >= monthAgo;
+      default:
+        return true;
+    }
+  };
+  
+  // Format date for display
+  const formatOrderDate = (dateStr) => {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-IN', { 
+      day: '2-digit', 
+      month: 'short', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+  
+  const filteredOrders = orders.filter(o => {
+    // Search filter
+    const matchesSearch = !orderSearch || 
+      o.order_id.toLowerCase().includes(orderSearch.toLowerCase()) || 
+      (o.user_name || '').toLowerCase().includes(orderSearch.toLowerCase()) ||
+      (o.customer_email || '').toLowerCase().includes(orderSearch.toLowerCase());
+    
+    // Status filter
+    const matchesStatus = orderStatusFilter === 'all' || o.status === orderStatusFilter;
+    
+    // Date filter
+    const matchesDate = isWithinDateFilter(o.created_at);
+    
+    return matchesSearch && matchesStatus && matchesDate;
+  });
 
   // Handler to add admin email to whitelist
   const handleAddAdminEmail = async () => {
@@ -519,28 +572,82 @@ export default function AdminDashboard() {
           {/* ORDERS (Owner only) */}
           {isOwner && (
             <TabsContent value="orders">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex-1 relative"><MagnifyingGlass size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" /><Input data-testid="order-search" value={orderSearch} onChange={e => setOrderSearch(e.target.value)} placeholder="Search orders..." className="pl-8 bg-[#0A0A0A] border-white/10 text-white placeholder:text-white/20 rounded-lg text-xs" /></div>
-                <Button data-testid="export-csv-btn" onClick={exportCSV} variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/5 rounded-lg text-xs"><DownloadSimple size={14} className="mr-1" /> Export CSV</Button>
+              {/* Filters Row */}
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                <div className="flex-1 min-w-[200px] relative">
+                  <MagnifyingGlass size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                  <Input data-testid="order-search" value={orderSearch} onChange={e => setOrderSearch(e.target.value)} placeholder="Search by Order ID, Customer..." className="pl-8 bg-[#0A0A0A] border-white/10 text-white placeholder:text-white/20 rounded-lg text-xs" />
+                </div>
+                
+                {/* Status Filter */}
+                <Select value={orderStatusFilter} onValueChange={setOrderStatusFilter}>
+                  <SelectTrigger className="w-36 h-9 text-xs bg-[#0A0A0A] border-white/10 text-white rounded-lg">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0A0A0A] border-white/10">
+                    <SelectItem value="all" className="text-xs">All Status</SelectItem>
+                    <SelectItem value="pending_payment" className="text-xs">Pending Payment</SelectItem>
+                    <SelectItem value="confirmed" className="text-xs">Confirmed</SelectItem>
+                    <SelectItem value="shipped" className="text-xs">Shipped</SelectItem>
+                    <SelectItem value="delivered" className="text-xs">Delivered</SelectItem>
+                    <SelectItem value="cancelled" className="text-xs">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                {/* Date Filter */}
+                <Select value={orderDateFilter} onValueChange={setOrderDateFilter}>
+                  <SelectTrigger className="w-32 h-9 text-xs bg-[#0A0A0A] border-white/10 text-white rounded-lg">
+                    <SelectValue placeholder="All Time" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0A0A0A] border-white/10">
+                    <SelectItem value="all" className="text-xs">All Time</SelectItem>
+                    <SelectItem value="today" className="text-xs">Today</SelectItem>
+                    <SelectItem value="week" className="text-xs">Last 7 Days</SelectItem>
+                    <SelectItem value="month" className="text-xs">Last 30 Days</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Button data-testid="export-csv-btn" onClick={exportCSV} variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/5 rounded-lg text-xs">
+                  <DownloadSimple size={14} className="mr-1" /> Export CSV
+                </Button>
               </div>
+              
+              {/* Results Count */}
+              <div className="text-xs text-white/40 mb-2">
+                Showing {filteredOrders.length} of {orders.length} orders
+              </div>
+              
               <div className="bg-[#0A0A0A] border border-white/10 rounded-xl overflow-hidden">
                 <Table>
                   <TableHeader><TableRow className="border-white/10">
-                    <TableHead className="text-white/40 text-[10px]">Order</TableHead><TableHead className="text-white/40 text-[10px]">Customer</TableHead><TableHead className="text-white/40 text-[10px]">Total</TableHead><TableHead className="text-white/40 text-[10px]">Coupon</TableHead><TableHead className="text-white/40 text-[10px]">Status</TableHead><TableHead className="text-white/40 text-[10px]">Tracking</TableHead>
+                    <TableHead className="text-white/40 text-[10px]">Order</TableHead>
+                    <TableHead className="text-white/40 text-[10px]">Date & Time</TableHead>
+                    <TableHead className="text-white/40 text-[10px]">Customer</TableHead>
+                    <TableHead className="text-white/40 text-[10px]">Total</TableHead>
+                    <TableHead className="text-white/40 text-[10px]">Status</TableHead>
+                    <TableHead className="text-white/40 text-[10px]">Tracking</TableHead>
                   </TableRow></TableHeader>
                   <TableBody>
-                    {filteredOrders.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-white/30 py-8 text-sm">No orders</TableCell></TableRow>}
+                    {filteredOrders.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-white/30 py-8 text-sm">No orders found</TableCell></TableRow>}
                     {filteredOrders.map(o => (
                       <TableRow key={o.order_id} data-testid={`admin-order-${o.order_id}`} className="border-white/5">
-                        <TableCell className="text-xs font-mono text-white">{o.order_id}</TableCell>
-                        <TableCell className="text-xs text-white/60">{o.user_name || o.user_email}</TableCell>
+                        <TableCell>
+                          <div className="text-xs font-mono text-[#007AFF]">{o.order_id}</div>
+                          {o.coupon_code && <div className="text-[9px] text-green-400 mt-0.5">🏷️ {o.coupon_code}</div>}
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-[10px] text-white/70">{formatOrderDate(o.created_at)}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-xs text-white">{o.user_name || o.customer_name || 'N/A'}</div>
+                          <div className="text-[10px] text-white/40">{o.user_email || o.customer_email || '-'}</div>
+                        </TableCell>
                         <TableCell>
                           <div>
                             <span className="text-xs font-medium text-white">₹{o.total?.toLocaleString('en-IN')}</span>
                             {o.discount > 0 && <span className="text-[9px] text-green-400 ml-1">-₹{o.discount}</span>}
                           </div>
                         </TableCell>
-                        <TableCell className="text-[10px] text-white/40">{o.coupon_code || '-'}</TableCell>
                         <TableCell>
                           <Select value={o.status} onValueChange={v => updateOrderStatus(o.order_id, v)}>
                             <SelectTrigger data-testid={`order-status-${o.order_id}`} className="w-28 h-7 text-[10px] bg-white/5 border-white/10 text-white rounded"><SelectValue /></SelectTrigger>
