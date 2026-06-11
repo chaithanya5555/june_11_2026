@@ -7,7 +7,7 @@ import requests
 import os
 from datetime import datetime
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://preview-demo-107.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://remove-payment-1.preview.emergentagent.com')
 
 class TestHealthAndProducts:
     """Health check and product catalog tests"""

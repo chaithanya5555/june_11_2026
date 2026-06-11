@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShoppingBag, CreditCard, Tag, ShieldCheck, Copy, Check, Clock, WarningCircle, QrCode, DeviceMobile, WhatsappLogo } from '@phosphor-icons/react';
+import { ArrowLeft, ShoppingBag, CreditCard, Tag, ShieldCheck } from '@phosphor-icons/react';
 import axios from 'axios';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -15,18 +15,13 @@ export default function Checkout() {
   const { user, login } = useAuth();
   const { cartItems, cartTotal, cartCount, clearCart } = useCart();
   
-  const [step, setStep] = useState('checkout'); // 'checkout', 'address', 'payment-select', 'payment', 'utr', 'verification'
+  const [step, setStep] = useState('checkout'); // 'checkout', 'address'
   const [processing, setProcessing] = useState(false);
   const [couponCode, setCouponCode] = useState('');
   const [validating, setValidating] = useState(false);
   const [couponApplied, setCouponApplied] = useState(null);
   const [discount, setDiscount] = useState(0);
-  const [upiConfig, setUpiConfig] = useState(null);
-  const [orderData, setOrderData] = useState(null);
-  const [utr, setUtr] = useState('');
-  const [copied, setCopied] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('razorpay'); // 'razorpay' or 'upi'
   
   // Address fields
   const [address, setAddress] = useState({
@@ -46,10 +41,6 @@ export default function Checkout() {
   useEffect(() => {
     // Scroll to top on mount so mobile users immediately see the cart items at the top
     window.scrollTo(0, 0);
-    // Fetch UPI config on load
-    axios.get(`${API}/payment/upi-config`)
-      .then(r => setUpiConfig(r.data))
-      .catch(console.error);
   }, []);
 
   const applyCoupon = async () => {
@@ -122,114 +113,97 @@ export default function Checkout() {
       return;
     }
     
-    // Move to payment method selection
-    setStep('payment-select');
+    // Proceed directly to Razorpay payment
+    await processRazorpayPayment();
   };
 
-  const handlePaymentMethodSelect = async (method) => {
-    setPaymentMethod(method);
+  const processRazorpayPayment = async () => {
     setProcessing(true);
     
     try {
-      if (method === 'razorpay') {
-        // Create Razorpay order
-        const r = await axios.post(`${API}/payment/create-order`, {
-          origin_url: window.location.origin,
-          payment_method: 'razorpay',
-          coupon_code: couponApplied?.code || null,
-          shipping_address: address,
-          estimated_delivery: estimatedDelivery
-        }, { withCredentials: true });
-        
-        setOrderData(r.data);
-        
-        // Open Razorpay checkout
-        const options = {
-          key: r.data.key_id,
-          amount: r.data.amount,
-          currency: 'INR',
-          name: 'SnapAlign',
-          description: `Order #${r.data.order_id}`,
-          order_id: r.data.razorpay_order_id,
-          handler: async function (response) {
-            // Verify payment
-            try {
-              await axios.post(`${API}/payment/verify`, {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                order_id: r.data.order_id
-              }, { withCredentials: true });
-              
-              clearCart();
-              navigate(`/checkout/success?order_id=${r.data.order_id}`);
-            } catch (e) {
-              toast.error('Payment verification failed');
-            }
-          },
-          prefill: {
-            name: address.name,
-            email: user?.email || '',
-            contact: address.phone
-          },
-          config: {
-            display: {
-              blocks: {
-                utib: {
-                  name: "Pay using UPI",
-                  instruments: [
-                    {
-                      method: "upi",
-                      flows: ["collect", "intent", "qr"]
-                    }
-                  ]
-                },
-                other: {
-                  name: "Other Payment Methods",
-                  instruments: [
-                    { method: "card" },
-                    { method: "netbanking" },
-                    { method: "wallet" }
-                  ]
-                }
+      // Create Razorpay order
+      const r = await axios.post(`${API}/payment/create-order`, {
+        origin_url: window.location.origin,
+        payment_method: 'razorpay',
+        coupon_code: couponApplied?.code || null,
+        shipping_address: address,
+        estimated_delivery: estimatedDelivery
+      }, { withCredentials: true });
+      
+      // Open Razorpay checkout
+      const options = {
+        key: r.data.key_id,
+        amount: r.data.amount,
+        currency: 'INR',
+        name: 'SnapAlign',
+        description: `Order #${r.data.order_id}`,
+        order_id: r.data.razorpay_order_id,
+        handler: async function (response) {
+          // Verify payment
+          try {
+            await axios.post(`${API}/payment/verify`, {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              order_id: r.data.order_id
+            }, { withCredentials: true });
+            
+            clearCart();
+            navigate(`/checkout/success?order_id=${r.data.order_id}`);
+          } catch (e) {
+            toast.error('Payment verification failed');
+          }
+        },
+        prefill: {
+          name: address.name,
+          email: user?.email || '',
+          contact: address.phone
+        },
+        config: {
+          display: {
+            blocks: {
+              utib: {
+                name: "Pay using UPI",
+                instruments: [
+                  {
+                    method: "upi",
+                    flows: ["collect", "intent", "qr"]
+                  }
+                ]
               },
-              sequence: ["block.utib", "block.other"],
-              preferences: {
-                show_default_blocks: true
+              other: {
+                name: "Other Payment Methods",
+                instruments: [
+                  { method: "card" },
+                  { method: "netbanking" },
+                  { method: "wallet" }
+                ]
               }
-            }
-          },
-          theme: {
-            color: '#007AFF'
-          },
-          modal: {
-            ondismiss: function() {
-              setProcessing(false);
-              toast.info('Payment cancelled');
+            },
+            sequence: ["block.utib", "block.other"],
+            preferences: {
+              show_default_blocks: true
             }
           }
-        };
-        
-        const razorpay = new window.Razorpay(options);
-        razorpay.open();
-        
-      } else {
-        // Create UPI order
-        const r = await axios.post(`${API}/payment/manual-upi/create-order`, {
-          origin_url: window.location.origin,
-          payment_method: 'manual_upi',
-          coupon_code: couponApplied?.code || null,
-          shipping_address: address,
-          estimated_delivery: estimatedDelivery
-        }, { withCredentials: true });
-        
-        setOrderData(r.data);
-        setStep('payment');
-      }
+        },
+        theme: {
+          color: '#007AFF'
+        },
+        modal: {
+          ondismiss: function() {
+            setProcessing(false);
+            toast.info('Payment cancelled');
+          }
+        }
+      };
+      
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+      
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Failed to create order');
+      setProcessing(false);
     }
-    setProcessing(false);
   };
 
   const handleProceedToPayment = async () => {
@@ -238,42 +212,8 @@ export default function Checkout() {
       return;
     }
     
-    // Move to address step instead of directly to payment
+    // Move to address step
     setStep('address');
-  };
-
-  const copyUPI = () => {
-    navigator.clipboard.writeText(orderData?.upi_id || upiConfig?.upi_id);
-    setCopied(true);
-    toast.success('UPI ID copied!');
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleSubmitUTR = async () => {
-    if (!utr.trim() || utr.length < 6) {
-      toast.error('Please enter a valid UTR number');
-      return;
-    }
-    
-    setProcessing(true);
-    try {
-      await axios.post(`${API}/payment/manual-upi/submit-utr`, {
-        utr: utr.trim(),
-        order_id: orderData.order_id
-      }, { withCredentials: true });
-      
-      setStep('verification');
-      clearCart();
-    } catch (e) {
-      toast.error(e.response?.data?.detail || 'Failed to submit UTR');
-    }
-    setProcessing(false);
-  };
-
-  const openWhatsApp = () => {
-    const phone = upiConfig?.whatsapp_number || '919876543210';
-    const message = `Hi, I need help with my order ${orderData?.order_id}. UTR: ${utr}`;
-    window.open(`https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   // Login prompt modal
@@ -300,71 +240,6 @@ export default function Checkout() {
           >
             Cancel
           </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Verification complete screen
-  if (step === 'verification') {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-4">
-        <div className="bg-[#0A0A0A] border border-white/10 rounded-2xl p-8 max-w-lg w-full text-center">
-          <div className="w-20 h-20 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Clock size={40} className="text-amber-400" />
-          </div>
-          
-          <h2 className="text-2xl font-medium text-white mb-3">Payment Under Verification</h2>
-          
-          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mb-6">
-            <p className="text-amber-400 text-sm">
-              Your order will be confirmed within <strong>1 hour</strong> after verification.
-            </p>
-          </div>
-
-          <div className="bg-white/5 rounded-xl p-4 mb-6 text-left">
-            <div className="flex justify-between mb-2">
-              <span className="text-white/50 text-sm">Order ID</span>
-              <span className="text-white font-mono">{orderData?.order_id}</span>
-            </div>
-            <div className="flex justify-between mb-2">
-              <span className="text-white/50 text-sm">Amount</span>
-              <span className="text-white">₹{orderData?.amount?.toLocaleString('en-IN')}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-white/50 text-sm">UTR</span>
-              <span className="text-white font-mono">{utr}</span>
-            </div>
-          </div>
-
-          <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-6">
-            <div className="flex items-start gap-3">
-              <WarningCircle size={20} className="text-blue-400 flex-shrink-0 mt-0.5" />
-              <div className="text-left">
-                <p className="text-blue-400 text-sm font-medium mb-1">Not verified in 1 hour?</p>
-                <p className="text-blue-400/70 text-xs">
-                  Raise a complaint on WhatsApp. <strong className="text-blue-400">Order will be placed or refunded within 48 hours.</strong>
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex gap-3">
-            <Button 
-              onClick={openWhatsApp}
-              variant="outline"
-              className="flex-1 border-green-500/30 text-green-400 hover:bg-green-500/10 rounded-lg h-12"
-            >
-              <WhatsappLogo size={20} className="mr-2" />
-              WhatsApp Support
-            </Button>
-            <Button 
-              onClick={() => navigate('/')}
-              className="flex-1 bg-[#007AFF] hover:bg-[#005BB5] text-white rounded-lg h-12"
-            >
-              Back to Home
-            </Button>
-          </div>
         </div>
       </div>
     );
@@ -513,196 +388,6 @@ export default function Checkout() {
     );
   }
 
-  // Payment Method Selection screen
-  if (step === 'payment-select') {
-    return (
-      <div className="min-h-screen bg-black">
-        <div className="max-w-2xl mx-auto px-4 py-8">
-          <button onClick={() => setStep('address')} className="inline-flex items-center gap-1 text-xs text-white/40 hover:text-white mb-6">
-            <ArrowLeft size={12} /> Back to Address
-          </button>
-
-          <div className="bg-[#0A0A0A] border border-white/10 rounded-2xl overflow-hidden">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-[#007AFF]/20 to-purple-500/20 p-6 text-center border-b border-white/10">
-              <h1 className="text-xl font-medium text-white mb-2">Choose Payment Method</h1>
-              <div className="text-3xl font-bold text-white">₹{total.toLocaleString('en-IN')}</div>
-            </div>
-
-            {/* Payment Options */}
-            <div className="p-6 space-y-4">
-              {/* Razorpay Option */}
-              <button 
-                onClick={() => handlePaymentMethodSelect('razorpay')}
-                disabled={processing}
-                className="w-full p-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#007AFF]/50 rounded-xl transition-all flex items-center gap-4 group disabled:opacity-50"
-              >
-                <div className="w-12 h-12 bg-[#007AFF]/20 rounded-xl flex items-center justify-center">
-                  <CreditCard size={24} className="text-[#007AFF]" />
-                </div>
-                <div className="flex-1 text-left">
-                  <h3 className="text-white font-medium">Pay with Card / UPI / Netbanking</h3>
-                  <p className="text-white/50 text-sm">Secure payment via Razorpay</p>
-                </div>
-                <div className="text-white/30 group-hover:text-[#007AFF]">
-                  <ArrowLeft size={16} className="rotate-180" />
-                </div>
-              </button>
-
-              {/* Manual UPI Option */}
-              <button 
-                onClick={() => handlePaymentMethodSelect('upi')}
-                disabled={processing}
-                className="w-full p-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-green-500/50 rounded-xl transition-all flex items-center gap-4 group disabled:opacity-50"
-              >
-                <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
-                  <QrCode size={24} className="text-green-500" />
-                </div>
-                <div className="flex-1 text-left">
-                  <h3 className="text-white font-medium">Pay via UPI (Manual)</h3>
-                  <p className="text-white/50 text-sm">Scan QR code and enter UTR number</p>
-                </div>
-                <div className="text-white/30 group-hover:text-green-500">
-                  <ArrowLeft size={16} className="rotate-180" />
-                </div>
-              </button>
-
-              {processing && (
-                <div className="text-center py-4">
-                  <div className="inline-block w-6 h-6 border-2 border-[#007AFF] border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-white/50 text-sm mt-2">Processing...</p>
-                </div>
-              )}
-            </div>
-
-            {/* Security Badge */}
-            <div className="p-4 border-t border-white/10 flex items-center justify-center gap-2 text-white/40 text-xs">
-              <ShieldCheck size={14} />
-              100% Secure Payments
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Payment QR screen (UPI)
-  if (step === 'payment') {
-    return (
-      <div className="min-h-screen bg-black">
-        <div className="max-w-2xl mx-auto px-4 py-8">
-          <button onClick={() => setStep('checkout')} className="inline-flex items-center gap-1 text-xs text-white/40 hover:text-white mb-6">
-            <ArrowLeft size={12} /> Back
-          </button>
-
-          <div className="bg-[#0A0A0A] border border-white/10 rounded-2xl overflow-hidden">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-[#007AFF]/20 to-purple-500/20 p-6 text-center border-b border-white/10">
-              <h1 className="text-xl font-medium text-white mb-2">Pay via UPI</h1>
-              <div className="text-3xl font-bold text-white">₹{orderData?.amount?.toLocaleString('en-IN')}</div>
-              <p className="text-white/50 text-sm mt-1">Order: {orderData?.order_id}</p>
-            </div>
-
-            {/* QR Code Section */}
-            <div className="p-6">
-              <div className="flex flex-col md:flex-row gap-6">
-                {/* QR Code */}
-                <div className="flex-1 flex flex-col items-center">
-                  <div className="bg-white p-4 rounded-2xl mb-4">
-                    {orderData?.upi_qr_url ? (
-                      <iframe 
-                        src={orderData.upi_qr_url} 
-                        className="w-48 h-48 border-0"
-                        title="UPI QR Code"
-                      />
-                    ) : (
-                      <div className="w-48 h-48 flex items-center justify-center bg-gray-100">
-                        <QrCode size={100} className="text-gray-400" />
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-white/40 text-xs">Scan with any UPI app</p>
-                </div>
-
-                {/* Instructions */}
-                <div className="flex-1">
-                  <h3 className="text-white font-medium mb-4 flex items-center gap-2">
-                    <DeviceMobile size={18} className="text-[#007AFF]" />
-                    How to Pay
-                  </h3>
-                  
-                  <div className="space-y-3 mb-6">
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 rounded-full bg-[#007AFF]/20 text-[#007AFF] flex items-center justify-center text-xs font-bold flex-shrink-0">1</div>
-                      <p className="text-white/70 text-sm">Scan QR code with any UPI app (PhonePe, GPay, Paytm)</p>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 rounded-full bg-[#007AFF]/20 text-[#007AFF] flex items-center justify-center text-xs font-bold flex-shrink-0">2</div>
-                      <p className="text-white/70 text-sm">Enter amount: <span className="text-white font-medium">₹{orderData?.amount?.toLocaleString('en-IN')}</span></p>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 rounded-full bg-[#007AFF]/20 text-[#007AFF] flex items-center justify-center text-xs font-bold flex-shrink-0">3</div>
-                      <p className="text-white/70 text-sm">Complete payment and note the <span className="text-amber-400 font-medium">UTR number</span></p>
-                    </div>
-                  </div>
-
-                  {/* UPI ID */}
-                  <div className="bg-white/5 rounded-xl p-4 mb-4">
-                    <p className="text-white/40 text-xs mb-2">Or pay directly to UPI ID:</p>
-                    <div className="flex items-center gap-2">
-                      <code className="flex-1 text-[#007AFF] font-mono text-sm bg-[#007AFF]/10 px-3 py-2 rounded-lg">
-                        {orderData?.upi_id}
-                      </code>
-                      <button 
-                        onClick={copyUPI}
-                        className="p-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
-                      >
-                        {copied ? <Check size={18} className="text-green-400" /> : <Copy size={18} className="text-white/50" />}
-                      </button>
-                    </div>
-                    <p className="text-white/30 text-xs mt-2">Pay to: {orderData?.upi_name}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* UTR Input */}
-              <div className="border-t border-white/10 pt-6 mt-6">
-                <h3 className="text-white font-medium mb-3">After Payment - Enter UTR Number</h3>
-                <p className="text-white/40 text-xs mb-4">
-                  Find UTR in your UPI app → Transaction History → Click on this payment → UTR/Reference Number
-                </p>
-                <div className="flex gap-3">
-                  <Input
-                    value={utr}
-                    onChange={(e) => setUtr(e.target.value.replace(/\D/g, '').slice(0, 12))}
-                    placeholder="Enter 12-digit UTR number"
-                    className="flex-1 h-12 bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-xl text-center font-mono tracking-widest"
-                    maxLength={12}
-                  />
-                  <Button 
-                    onClick={handleSubmitUTR}
-                    disabled={processing || utr.length < 6}
-                    className="bg-green-500 hover:bg-green-600 text-white rounded-xl h-12 px-8"
-                  >
-                    {processing ? 'Verifying...' : 'Submit UTR'}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Help */}
-          <div className="mt-6 text-center">
-            <p className="text-white/30 text-xs mb-2">Need help? Contact us on WhatsApp</p>
-            <button onClick={openWhatsApp} className="text-green-400 text-sm hover:underline flex items-center gap-1 mx-auto">
-              <WhatsappLogo size={16} /> WhatsApp Support
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Main checkout screen
   return (
     <div data-testid="checkout-page" className="min-h-screen bg-black">
@@ -818,7 +503,7 @@ export default function Checkout() {
 
                 <div className="flex items-center gap-1 justify-center mt-3">
                   <ShieldCheck size={12} className="text-green-400" />
-                  <span className="text-[10px] text-white/30">100% Secure Payment</span>
+                  <span className="text-[10px] text-white/30">100% Secure Payment via Razorpay</span>
                 </div>
               </div>
             </div>
@@ -832,22 +517,21 @@ export default function Checkout() {
               <div className="bg-gradient-to-r from-[#007AFF]/10 to-purple-500/10 border border-[#007AFF]/30 rounded-xl p-4">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-[#007AFF]/20 rounded-xl flex items-center justify-center">
-                    <QrCode size={24} className="text-[#007AFF]" />
+                    <CreditCard size={24} className="text-[#007AFF]" />
                   </div>
                   <div>
-                    <p className="text-white font-medium">UPI Payment (Scan & Pay)</p>
-                    <p className="text-white/50 text-xs">Pay via PhonePe, GPay, Paytm or any UPI app</p>
+                    <p className="text-white font-medium">Secure Payment via Razorpay</p>
+                    <p className="text-white/50 text-xs">Pay via UPI, Credit/Debit Card, Netbanking, or Wallet</p>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-4 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
-                <div className="flex items-start gap-2">
-                  <WarningCircle size={16} className="text-amber-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-amber-400 text-xs">
-                    After payment, enter your UTR number. Your order will be confirmed within 1 hour after verification.
-                  </p>
-                </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <div className="bg-white/5 rounded-lg px-3 py-1.5 text-xs text-white/60">UPI</div>
+                <div className="bg-white/5 rounded-lg px-3 py-1.5 text-xs text-white/60">Credit Card</div>
+                <div className="bg-white/5 rounded-lg px-3 py-1.5 text-xs text-white/60">Debit Card</div>
+                <div className="bg-white/5 rounded-lg px-3 py-1.5 text-xs text-white/60">Netbanking</div>
+                <div className="bg-white/5 rounded-lg px-3 py-1.5 text-xs text-white/60">Wallets</div>
               </div>
             </div>
           </div>

@@ -6,7 +6,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://preview-demo-107.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://remove-payment-1.preview.emergentagent.com').rstrip('/')
 
 class TestAdminRBAC:
     """Test Role-Based Access Control for Admin Users"""

@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 
 class SnapAlignPaymentTester:
-    def __init__(self, base_url="https://preview-demo-107.preview.emergentagent.com"):
+    def __init__(self, base_url="https://remove-payment-1.preview.emergentagent.com"):
         self.base_url = base_url
         self.session_token = None
         self.admin_token = None
@@ -487,7 +487,7 @@ class SnapAlignPaymentTester:
             "payment/create-order",
             200,
             data={
-                "origin_url": "https://preview-demo-107.preview.emergentagent.com",
+                "origin_url": "https://remove-payment-1.preview.emergentagent.com",
                 "payment_method": "upi_phonepe"
             }
         )

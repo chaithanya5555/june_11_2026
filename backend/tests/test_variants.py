@@ -205,7 +205,7 @@ class TestCartVariantAuth:
 
     def test_manual_upi_create_order_unauth_401(self):
         r = requests.post(f"{BASE_URL}/api/payment/manual-upi/create-order", json={
-            "origin_url": "https://preview-demo-107.preview.emergentagent.com",
+            "origin_url": "https://remove-payment-1.preview.emergentagent.com",
             "payment_method": "manual_upi",
         })
         assert r.status_code == 401
