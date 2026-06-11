@@ -310,7 +310,10 @@ export default function AdminDashboard() {
     if (settingsForm.razorpay_key_id && settingsForm.razorpay_key_id !== settings?.razorpay_key_id) payload.razorpay_key_id = settingsForm.razorpay_key_id;
     if (settingsForm.razorpay_key_secret) payload.razorpay_key_secret = settingsForm.razorpay_key_secret;
     if (settingsForm.admin_password) payload.admin_password = settingsForm.admin_password;
-    if (settingsForm.whatsapp_number !== (settings?.whatsapp_number || '')) payload.whatsapp_number = settingsForm.whatsapp_number;
+    // Always include whatsapp_number if it changed (including clearing it)
+    if (settingsForm.whatsapp_number !== (settings?.whatsapp_number || '')) {
+      payload.whatsapp_number = settingsForm.whatsapp_number;
+    }
     if (settingsForm.upi_id !== (settings?.upi_id || '')) payload.upi_id = settingsForm.upi_id;
     if (settingsForm.upi_qr_url !== (settings?.upi_qr_url || '')) payload.upi_qr_url = settingsForm.upi_qr_url;
     if (settingsForm.upi_name !== (settings?.upi_name || '')) payload.upi_name = settingsForm.upi_name;
@@ -320,7 +323,10 @@ export default function AdminDashboard() {
       toast.success(res.data.message);
       if (res.data.demo_mode === false) toast.success('Live mode activated!');
       fetchData(adminRole);
-    } catch { toast.error('Failed to save'); }
+    } catch (e) { 
+      console.error('Settings save error:', e);
+      toast.error(e.response?.data?.detail || 'Failed to save'); 
+    }
     setSavingSettings(false);
   };
 

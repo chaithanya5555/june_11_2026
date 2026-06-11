@@ -29,6 +29,7 @@ export default function Navbar() {
   const [deviceFinderOpen, setDeviceFinderOpen] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState('');
   const [selectedModel, setSelectedModel] = useState('');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -36,6 +37,13 @@ export default function Navbar() {
   const isAdminRoute = location.pathname.startsWith('/admin');
   // Hide WhatsApp float on checkout & admin to keep these screens focused
   const hideWhatsAppFloat = isAdminRoute || location.pathname.startsWith('/checkout');
+
+  // Fetch WhatsApp config
+  useEffect(() => {
+    axios.get(`${API}/admin/whatsapp-config`)
+      .then(res => setWhatsappNumber(res.data.whatsapp_number || ''))
+      .catch(() => {});
+  }, []);
 
   // Fetch subcategories for each category
   useEffect(() => {
@@ -310,9 +318,9 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* WhatsApp Float (hidden on checkout & admin pages) */}
-      {!hideWhatsAppFloat && (
-        <a data-testid="whatsapp-float" href="https://wa.me/919999999999?text=Hi%20SnapAlign%2C%20I%20need%20help" target="_blank" rel="noopener noreferrer" className="fixed bottom-6 right-6 z-[100] p-4 rounded-full shadow-[0_8px_32px_rgba(37,211,102,0.3)] hover:scale-110 transition-transform" style={{ backgroundColor: '#25D366' }}>
+      {/* WhatsApp Float (hidden on checkout & admin pages, only shown if number configured) */}
+      {!hideWhatsAppFloat && whatsappNumber && (
+        <a data-testid="whatsapp-float" href={`https://wa.me/${whatsappNumber}?text=Hi%20SnapAlign%2C%20I%20need%20help`} target="_blank" rel="noopener noreferrer" className="fixed bottom-6 right-6 z-[100] p-4 rounded-full shadow-[0_8px_32px_rgba(37,211,102,0.3)] hover:scale-110 transition-transform" style={{ backgroundColor: '#25D366' }}>
           <WhatsappLogo size={24} weight="fill" className="text-white" />
         </a>
       )}
